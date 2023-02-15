@@ -1,0 +1,25 @@
+#include <Encoder.h>
+
+#define EN 4
+#define M1DIR 7
+#define M1SPD 9
+
+Encoder motorA(2,4);
+
+void setup() {
+  Serial.begin(9600);
+  
+  pinMode(EN,OUTPUT);
+  pinMode(M1DIR, OUTPUT);
+  pinMode(M1SPD, OUTPUT);
+
+  digitalWrite(EN,HIGH);
+  digitalWrite(M1DIR,LOW);//LOW = CLKWISE
+  analogWrite(M1SPD,255);
+}
+
+void loop() {
+  //Read Encoder
+  double newPosition = (double)motorA.read()*2*PI/3200;
+  Serial.println(newPosition);
+}
