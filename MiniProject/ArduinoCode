@@ -1,0 +1,55 @@
+gmai#include <Encoder.h>
+
+#define EN 4
+#define M1DIR 7
+#define M1SPD 9
+
+double Kp=3;
+double Kd=0;
+double Ki=50;
+
+Encoder motorA(2,4);
+
+void setup() {
+  Serial.begin(9600);
+  
+  pinMode(EN,OUTPUT);
+  pinMode(M1DIR, OUTPUT);
+  pinMode(M1SPD, OUTPUT);
+
+  digitalWrite(EN,HIGH);
+  digitalWrite(M1DIR,LOW);//LOW = CLKWISE
+}
+
+void loop() {
+  static float desiredPos=0;
+  static int16_t Vapp=0;
+  static float laste=0;
+  static uint32_t lastTime=0;
+
+  //Read Encoder
+  double pos = (double)motorA.read()*2*PI/3200;
+
+  //PID Math
+  float e = pos-desiredPos;
+  float de = (e-laste)*1000000/(micros()-lastTime);
+  float inte = ((e+laste)/2)*(micros()-lastTime)/1000000;
+  Vapp = 255.0/8 * (Kp*e + Kd*de + Ki*inte);
+  if(Vapp>255)Vapp=255; //Saturation
+  if(Vapp<-255)Vapp=-255;
+
+  //Drive Motor
+  if(Vapp>0) digitalWrite(M1DIR,HIGH);
+  else digitalWrite(M1DIR,LOW);
+  analogWrite(M1SPD,abs(Vapp));
+
+  laste=e;
+  lastTime=micros();
+  
+  if(Serial.available()>0){
+    Serial.read();
+    desiredPos+=PI/4;
+  }
+
+  delay(20);
+}
