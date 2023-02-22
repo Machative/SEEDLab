@@ -113,10 +113,10 @@ while cap.isOpened():
     
     number = readNumber()
     # probably need some conversion
-    # currentPosition = number[0] + number[1]
+    currentPosition = number[0] + number[1]
     lcd.text_direction = lcd.LEFT_TO_RIGHT
     
-    lcd.message = "Desired setpoint: " + str(desiredPosition) + "\nCurrent setpoint: "
+    lcd.message = "Desired setpoint: " + str(desiredPosition) + "\nCurrent setpoint: " + str(number)
     # Wait 5s
     time.sleep(5)
     lcd.clear
