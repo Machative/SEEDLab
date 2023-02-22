@@ -1,3 +1,11 @@
+# I2C
+import smbus
+import time
+# LCD Screen
+import board
+import adafruit_character_lcd.character_lcd_rgb_i2c as character_lcd
+
+import math
 #Imports numpy and opencv
 import numpy as np
 import cv2 as cv
@@ -8,6 +16,24 @@ from time import sleep
 
 #Initializes the camera and the video capture object
 cap = cv.VideoCapture(0)
+
+lcd_columns = 16
+lcd_rows = 2
+
+# Initialise I2C bus.
+i2c = board.I2C()  # uses board.SCL and board.SDA
+# i2c = board.STEMMA_I2C()  # For using the built-in STEMMA QT connector on a microcontroller
+
+# Initialise the LCD class
+lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
+
+lcd.clear()
+lcd.color = [50, 0, 50]
+# for RPI version 1, use “bus = smbus.SMBus(0)”
+bus = smbus.SMBus(1)
+
+# This is the address we setup in the Arduino Program
+address = 0x04
 
 #Captures each frame of the video
 while cap.isOpened():
