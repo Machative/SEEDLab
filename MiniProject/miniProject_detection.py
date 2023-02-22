@@ -35,6 +35,21 @@ bus = smbus.SMBus(1)
 # This is the address we setup in the Arduino Program
 address = 0x04
 
+def writeNumber(value):
+    # We're sending multiple bytes, so we use this I2C block operation
+    bus.write_i2c_block_data(address, 0, value)
+    #bus.write_byte(address, value)
+    #bus.write_byte_data(address, offset, value)
+    return -1
+
+def readNumber(length):
+    # When reading in the list from the Arduino, I have length+1 to account for the
+    # first element being 0, and then use block.pop() to remove that 0.
+    block = bus.read_i2c_block_data(address, 0, 2)
+    block.pop()
+    #block = bus.read_byte_data(address, 0xFF)
+    return block
+
 #Captures each frame of the video
 while cap.isOpened():
     x, getFrame = cap.read()
@@ -80,14 +95,31 @@ while cap.isOpened():
         #Prints the quadrant of the marker
         #If marker in top left 
         if((xCenter < (horizontalPixels / 2)) and (yCenter < (verticalPixels / 2))):
+            desiredPosition = pi/2
+            writeNumber(desiredPosition)
             print('In top left corner')
         elif((xCenter > (horizontalPixels / 2)) and (yCenter < (verticalPixels / 2))):
+            desiredPosition = 0
+            writeNumber(desiredPosition)
             print('In top right corner')
         elif((xCenter < (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
+            desiredPosition = pi
+            writeNumber(desiredPosition)
             print('In bottom left corner')
         elif((xCenter > (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
+            desiredPosition = (3*math.pi) / 2
+            writeNumber(desiredPosition)
             print('In bottom right corner')
     
+    number = readNumber()
+    # probably need some conversion
+    # currentPosition = number[0] + number[1]
+    lcd.text_direction = lcd.LEFT_TO_RIGHT
+    
+    lcd.message = "Desired setpoint: " + str(desiredPosition) + "\nCurrent setpoint: "
+    # Wait 5s
+    time.sleep(5)
+    lcd.clear
     drawnImg = cv.aruco.drawDetectedMarkers(getFrame, corners)
     #output.write(getFrame)
     cv.imshow('Frame', drawnImg)
