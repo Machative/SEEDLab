@@ -1,4 +1,6 @@
 #include <Encoder.h>
+#include <Wire.h>
+#define SLAVE_ADDRESS 0x04
 
 #define EN 4
 #define M1DIR 7
@@ -6,20 +8,51 @@
 
 Encoder motorA(2,4);
 
+byte position[2];
+double number = 0.0;
+int temp = 0;
+
 void setup() {
-  Serial.begin(9600);
-  
+  Serial.begin(115200);
+  Wire.begin(SLAVE_ADDRESS);
   pinMode(EN,OUTPUT);
   pinMode(M1DIR, OUTPUT);
   pinMode(M1SPD, OUTPUT);
-
+  pinMode(13, OUTPUT);
+  
   digitalWrite(EN,HIGH);
   digitalWrite(M1DIR,LOW);//LOW = CLKWISE
   analogWrite(M1SPD,255);
+  Wire.onReceive(receiveData);
+  Wire.onRequest(sendData);
+
 }
 
 void loop() {
   //Read Encoder
   double newPosition = (double)motorA.read()*2*PI/3200;
+  
   Serial.println(newPosition);
 }
+
+void receiveData(int byteCount){
+  
+  int i = 0;
+  
+  while(Wire.available()) {
+  # Desired setpoint from Pi
+  # idk how to use this
+    number = Wire.read();
+  }
+    
+}
+
+void sendData(){
+
+  position[0] = (motorA.read()*2*PI) % 3200 ; 
+  position[1] = (motorA.read()*2*PI) / 3200 ;
+  // We get the decimal part by taking the remainder with modulo.
+  
+  Wire.write(position, 2);
+}
+
