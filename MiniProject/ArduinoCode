@@ -10,7 +10,7 @@ double Kp=3;
 double Kd=0;
 double Ki=50;
 
-int pos=0;
+double pos=0;
 double desiredPos=0;
 
 Encoder motorA(2,4);
