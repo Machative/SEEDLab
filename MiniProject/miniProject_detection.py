@@ -3,6 +3,7 @@ import smbus
 import time
 # LCD Screen
 import board
+import busio
 import adafruit_character_lcd.character_lcd_rgb_i2c as character_lcd
 
 import math
@@ -35,6 +36,7 @@ bus = smbus.SMBus(1)
 # This is the address we setup in the Arduino Program
 address = 0x04
 
+position = [0];
 def writeNumber(value):
     # We're sending multiple bytes, so we use this I2C block operation
     bus.write_i2c_block_data(address, 0, value)
@@ -46,7 +48,7 @@ def readNumber(length):
     # When reading in the list from the Arduino, I have length+1 to account for the
     # first element being 0, and then use block.pop() to remove that 0.
     block = bus.read_i2c_block_data(address, 0, 2)
-    block.pop()
+    #block.pop()
     #block = bus.read_byte_data(address, 0xFF)
     return block
 
@@ -95,34 +97,35 @@ while cap.isOpened():
         #Prints the quadrant of the marker
         #If marker in top left 
         if((xCenter < (horizontalPixels / 2)) and (yCenter < (verticalPixels / 2))):
-            desiredPosition = pi/2
+            desiredPosition[0] = 2
             writeNumber(desiredPosition)
             print('In top left corner')
         elif((xCenter > (horizontalPixels / 2)) and (yCenter < (verticalPixels / 2))):
-            desiredPosition = 0
+            desiredPosition[0] = 1
             writeNumber(desiredPosition)
             print('In top right corner')
         elif((xCenter < (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
-            desiredPosition = pi
+            desiredPosition[0] = 3
             writeNumber(desiredPosition)
             print('In bottom left corner')
         elif((xCenter > (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
-            desiredPosition = (3*math.pi) / 2
+            desiredPosition[0] = 4
             writeNumber(desiredPosition)
             print('In bottom right corner')
-    
-    number = readNumber()
-    # probably need some conversion
-    currentPosition = number[0] + number[1]
-    lcd.text_direction = lcd.LEFT_TO_RIGHT
-    
-    lcd.message = "Desired setpoint: " + str(desiredPosition) + "\nCurrent setpoint: " + str(number)
-    # Wait 5s
-    time.sleep(5)
-    lcd.clear
+            
+    message = ''
+    message += str(desiredPosition[0])
+    print(message)
+    time.sleep(.1)
+
     drawnImg = cv.aruco.drawDetectedMarkers(getFrame, corners)
     #output.write(getFrame)
     cv.imshow('Frame', drawnImg)
+    
+    time.sleep(.01)
+    # take in dumby value from I2C
+    number = readNumber()
+    currentPosition = number[0] + number[1]
     #Press q to stop recording
     if cv.waitKey(1) == ord('q'):
         break
