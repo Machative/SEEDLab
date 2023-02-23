@@ -1,17 +1,23 @@
-gmai#include <Encoder.h>
+#include <Encoder.h>
+#include <Wire.h>
 
 #define EN 4
 #define M1DIR 7
 #define M1SPD 9
+#define SLAVE_ADDRESS 0x04
 
 double Kp=3;
 double Kd=0;
 double Ki=50;
 
+int pos=0;
+double desiredPos=0;
+
 Encoder motorA(2,4);
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
+  Wire.begin(SLAVE_ADDRESS);
   
   pinMode(EN,OUTPUT);
   pinMode(M1DIR, OUTPUT);
@@ -19,16 +25,48 @@ void setup() {
 
   digitalWrite(EN,HIGH);
   digitalWrite(M1DIR,LOW);//LOW = CLKWISE
+  Wire.onReceive(receiveData);
+  Wire.onRequest(sendData);
+}
+
+void receiveData(int byteCount){
+  while(Wire.available()) {
+    uint8_t quadrant = Wire.read();
+    switch(quadrant){
+      case 1:
+        desiredPos=0;
+        break;
+      case 2:
+        desiredPos=PI/2;
+        break;
+      case 3:
+        desiredPos=PI;
+        break;
+      case 4:
+        desiredPos=3*PI/2;
+        break;
+    }
+    Serial.print("desired pos: ");
+    Serial.println(desiredPos);
+  }
+}
+
+void sendData(){
+  byte posArr[2];
+  posArr[0] = floor(pos);
+  posArr[1] = ((int)(pos*100))%100;
+  // We get the decimal part by taking the remainder with modulo.
+  
+  Wire.write(posArr, 2);
 }
 
 void loop() {
-  static float desiredPos=0;
   static int16_t Vapp=0;
   static float laste=0;
   static uint32_t lastTime=0;
 
   //Read Encoder
-  double pos = (double)motorA.read()*2*PI/3200;
+  pos = (double)motorA.read()*2*PI/3200;
 
   //PID Math
   float e = pos-desiredPos;
@@ -45,11 +83,11 @@ void loop() {
 
   laste=e;
   lastTime=micros();
-  
-  if(Serial.available()>0){
-    Serial.read();
-    desiredPos+=PI/4;
-  }
+
+  Serial.print("pos: ");
+  Serial.println(pos);
+
+  sendData();
 
   delay(20);
 }
