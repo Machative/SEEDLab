@@ -52,12 +52,11 @@ void receiveData(int byteCount){
 }
 
 void sendData(){
-  byte posArr[2];
+  byte posArr[3];
   posArr[0] = floor(pos);
-  posArr[1] = ((int)(pos*100))%100;
-  // We get the decimal part by taking the remainder with modulo.
-  
-  Wire.write(posArr, 2);
+  posArr[1] = ((int)(pos*10))%10;
+  posArr[2] = ((int)(pos*100))%10;
+  Wire.write(posArr, 3);
 }
 
 void loop() {
