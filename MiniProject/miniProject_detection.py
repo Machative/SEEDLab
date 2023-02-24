@@ -1,3 +1,12 @@
+# Joe
+# 24 February 2023
+# Mini Project Computer Vision
+# 
+# The Pi uses I2C communication to write and recieve data blocks to/from the Arduino.
+# We write the desired location of the Aruco as a list of 1 element, and then recieve 
+# the current location from the Arduino as an array of 3 integers to form the position in radians.
+# We then display the desired and current location on the LCD screen over I2C as well.
+
 # I2C
 import smbus
 import time
