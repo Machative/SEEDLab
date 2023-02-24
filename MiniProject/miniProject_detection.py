@@ -18,6 +18,8 @@ from time import sleep
 #Initializes the camera and the video capture object
 cap = cv.VideoCapture(0)
 
+position = [0]
+
 lcd_columns = 16
 lcd_rows = 2
 
@@ -97,26 +99,55 @@ while cap.isOpened():
         #Prints the quadrant of the marker
         #If marker in top left 
         if((xCenter < (horizontalPixels / 2)) and (yCenter < (verticalPixels / 2))):
-            desiredPosition[0] = 2
-            writeNumber(desiredPosition)
+            position[0] = 2
+            writeNumber(position)
+            time.sleep(.1)
+            number = readNumber()
+            time.sleep(.1)
+            message = str(number[0]) + str(number[1]) + str(number[2])
             print('In top left corner')
-        elif((xCenter > (horizontalPixels / 2)) and (yCenter < (verticalPixels / 2))):
-            desiredPosition[0] = 1
-            writeNumber(desiredPosition)
-            print('In top right corner')
-        elif((xCenter < (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
-            desiredPosition[0] = 3
-            writeNumber(desiredPosition)
-            print('In bottom left corner')
-        elif((xCenter > (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
-            desiredPosition[0] = 4
-            writeNumber(desiredPosition)
-            print('In bottom right corner')
+            print(message)
             
-    message = ''
-    message += str(desiredPosition[0])
-    print(message)
-    time.sleep(.1)
+            lcd.text_direction = lcd.LEFT_TO_RIGHT
+            lcd.message = "Desired: Quad " + str(position) + "\nCurrent: " + message
+        elif((xCenter > (horizontalPixels / 2)) and (yCenter < (verticalPixels / 2))):
+            position[0] = 1
+            writeNumber(position)
+            time.sleep(.1)
+            number = readNumber()
+            time.sleep(.1)
+            message = str(number[0]) + str(number[1]) + str(number[2])
+            print('In top right corner')
+            print(message)
+            
+            lcd.text_direction = lcd.LEFT_TO_RIGHT
+            lcd.message = "Desired: Quad " + str(position) + "\nCurrent: " + message
+        elif((xCenter < (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
+            position[0] = 3
+            writeNumber(position)
+            time.sleep(.1)
+            number = readNumber()
+            time.sleep(.1)
+            message = str(number[0]) + str(number[1]) + str(number[2])
+            print('In bottom left corner')
+            print(message)
+            
+            lcd.text_direction = lcd.LEFT_TO_RIGHT
+            lcd.message = "Desired: Quad " + str(position) + "\nCurrent: " + message
+        elif((xCenter > (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
+             position[0] = 4
+            writeNumber(position)
+            time.sleep(.1)
+            number = readNumber()
+            time.sleep(.1)
+            message = str(number[0]) + str(number[1]) + str(number[2])
+            print('In bottom right corner')
+            print(message)
+            
+            lcd.text_direction = lcd.LEFT_TO_RIGHT
+            lcd.message = "Desired: Quad " + str(position) + "\nCurrent: " + message
+            
+   
 
     drawnImg = cv.aruco.drawDetectedMarkers(getFrame, corners)
     #output.write(getFrame)
