@@ -78,14 +78,17 @@ void loop() {
   static int16_t Vapp=0;
   static float laste=0;
   static uint32_t lastTime=0;
+  static float e=0;
+  static float de=0;
+  static float inte=0;
 
   //Read Encoder
   pos = (double)motorA.read()*2*PI/3200;
 
   //Calculate the P, I, and D terms for PID control
-  float e = pos-desiredPos; //Radians
-  float de = (e-laste)*1000000/(micros()-lastTime); //Radians per second
-  float inte += ((e+laste)/2)*(micros()-lastTime)/1000000; //Radians times seconds
+  e = pos-desiredPos; //Radians
+  de = (e-laste)*1000000/(micros()-lastTime); //Radians per second
+  inte += ((e+laste)/2)*(micros()-lastTime)/1000000; //Radians times seconds
 
   //Calculate the applied voltage (in the form of a duty cycle) based on the PID controller
   Vapp = 255.0/8 * (Kp*e + Kd*de + Ki*inte); //Volts
