@@ -119,6 +119,7 @@ while cap.isOpened():
             
             lcd.text_direction = lcd.LEFT_TO_RIGHT
             lcd.message = "Desired: Quad " + str(position) + "\nCurrent: " + message
+        #If marker in top right
         elif((xCenter > (horizontalPixels / 2)) and (yCenter < (verticalPixels / 2))):
             position[0] = 1
             writeNumber(position)
@@ -131,6 +132,7 @@ while cap.isOpened():
             
             lcd.text_direction = lcd.LEFT_TO_RIGHT
             lcd.message = "Desired: Quad " + str(position) + "\nCurrent: " + message
+        #If marker in bottom left
         elif((xCenter < (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
             position[0] = 3
             writeNumber(position)
@@ -143,6 +145,7 @@ while cap.isOpened():
             
             lcd.text_direction = lcd.LEFT_TO_RIGHT
             lcd.message = "Desired: Quad " + str(position) + "\nCurrent: " + message
+        #If marker in bottom right
         elif((xCenter > (horizontalPixels / 2)) and (yCenter > (verticalPixels / 2))):
              position[0] = 4
             writeNumber(position)
