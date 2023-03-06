@@ -2,9 +2,32 @@
 import numpy as np
 import cv2 as cv
 
+#I2C
+import smbus
+import time
+# LCD Screen
+import board
+import busio
+import adafruit_character_lcd.character_lcd_rgb_i2c as character_lcd
+
 #Imports picamera
 from picamera import PiCamera
 from time import sleep
+
+lcd_columns = 16
+lcd_rows = 2
+
+# Initialise I2C bus.
+i2c = board.I2C()  # uses board.SCL and board.SDA
+# i2c = board.STEMMA_I2C()  # For using the built-in STEMMA QT connector on a microcontroller
+
+# Initialise the LCD class
+lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
+
+lcd.clear()
+lcd.color = [50, 0, 50]
+# for RPI version 1, use “bus = smbus.SMBus(0)”
+bus = smbus.SMBus(1)
 
 #Initializes the camera and the video capture object
 cap = cv.VideoCapture(0)
@@ -59,8 +82,15 @@ while cap.isOpened():
         print(xCenter)
         #Calculates the angle
         xPixFromCenter = (horizontalPixels/2) - xCenter
+        
         angle = halfView*(xPixFromCenter/(horizontalPixels/2))
         print('The first marker is ', angle, 'degrees away from the center of the image')
+        
+        time.sleep(.1)
+        lcd.text_direction = lcd.LEFT_TO_RIGHT
+        lcd.message = "Angle: " + str(angle)
+        
+        
         
     drawnImg = cv.aruco.drawDetectedMarkers(getFrame, corners)
     #output.write(getFrame)
