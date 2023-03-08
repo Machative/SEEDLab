@@ -1,0 +1,137 @@
+//Aidan Ferry
+//Date
+
+#include <Wire.h>
+#include <Encoder.h>
+
+#define EN 4
+#define M1DIR 7
+#define M2DIR 8
+#define M1SPD 9
+#define M2SPD 10
+#define SLAVE_ADDRESS 0x04
+#define CNTS_PER_REV 3200
+#define MAX_SPEED 80
+
+//Robot Parameters
+float R = 7.5;
+float b = 14; //b is the distance from wheel to axis of rotation, NOT distance between wheels
+
+//Wheel Positions
+double thetaL=0;
+double thetaR=0;
+//Current and Desired Position
+double x=0;
+double y=0;
+double phi=0;
+double desX=0;
+double desY=0;
+double desPhi=PI/2;
+
+int16_t cntL=0;
+int16_t cntR=0;
+
+Encoder motorLeft(2,4);
+Encoder motorRight(3,5);
+
+void setup() {
+  //Begin Serial and Wire comms
+  Serial.begin(9600);
+  //Wire.begin(SLAVE_ADDRESS);
+
+  //Initialize pins for motor driver control
+  pinMode(EN,OUTPUT);
+  pinMode(M1DIR, OUTPUT);
+  pinMode(M2DIR, OUTPUT);
+  pinMode(M1SPD, OUTPUT);
+  pinMode(M2SPD, OUTPUT);
+
+  digitalWrite(EN,HIGH); //Enable motor driver
+  //Wire.onReceive(receiveData);
+  //Wire.onRequest(sendData);
+}
+
+void loop() {
+  static uint32_t loopTime=0;
+  loopTime=millis();
+  static int16_t Vl=0;
+  static int16_t Vr=0;
+  static double wL=0;
+  static double wR=0;
+  static double v=0;
+  static double w=0;
+  static float laste=0;
+  static uint32_t lastTime=0;
+  static double thetaLlast=0;
+  static double thetaRlast=0;
+  static double dthetaL=0;
+  static double dthetaR=0;
+  static double ex=0;
+  static double lastex=0;
+  static double dex=0;
+  static double intex=0;
+  static double ey=0;
+  static double ephi=0;
+
+  thetaL = motorLeft.read()*2*PI/CNTS_PER_REV;
+  dthetaL = thetaL - thetaLlast;
+  thetaR = motorRight.read()*2*PI/CNTS_PER_REV;
+  dthetaR = thetaR - thetaRlast;
+
+  //Instantaneous Wheel Velocities (angular)
+  wL = dthetaL*1000000/(micros()-lastTime);
+  wR = dthetaR*1000000/(micros()-lastTime);
+
+  //Errors
+  //Do we want an x error, y error, and theta error? Or do we want a V error and theta error? Or what?
+  ex = desX-x;
+  ey = desY-y;
+  ephi = desPhi-phi;
+  dex = (ex-lastex)*1000000/micros();
+  intex += ex*(micros()-lastTime);
+  
+  lastTime=micros();//Set last time as soon as you finish time-sensitive calculations
+
+  x += (dthetaR+dthetaL)*(R/2)*cos(phi);
+  y += (dthetaR+dthetaL)*(R/2)*sin(phi);
+  phi = R*(thetaR-thetaL)/(2*b); //IS THIS RIGHT?
+  
+  //TODO: From wL and wR, get instantaneous robot velocities (translational and rotational). These are for control, not positioning
+  v = R*(wR+wL)/2; //Translational velocity
+  w = R*(wR-wL)/b; //Angular velocity
+
+  //Calculate the P, I, and D terms for PID control
+
+  static double Kpv=1;
+  static double Kpw=10;
+  static double Kdv=0;
+  //Calculate the applied voltage (in the form of a duty cycle) based on the PID controller, for each wheel
+  Vl = (255/8)*(Kpv*(ex*cos(phi)+ey*sin(phi)) - Kpw*ephi);
+  Vr = (255/8)*(Kpv*(ex*cos(phi)+ey*sin(phi)) + Kpw*ephi);//The +/- Kpw*ephi controls how velocity should be REDUCED according to a theta error (not increased because it will just saturate)
+  if(Vl>MAX_SPEED) Vl=MAX_SPEED;
+  if(Vl<-MAX_SPEED) Vl=-MAX_SPEED;
+  if(Vr>MAX_SPEED) Vr=MAX_SPEED;
+  if(Vr<-MAX_SPEED) Vr=-MAX_SPEED;
+
+  //Print out current position
+//  Serial.print("x: ");
+//  Serial.print(x);
+//  Serial.print("\ty: ");
+//  Serial.print(y);
+//  Serial.print("\tphi: ");
+//  Serial.println(phi);
+
+  //Drive Motor
+  if(Vl>0) digitalWrite(M1DIR,LOW);
+  else digitalWrite(M1DIR,HIGH);
+  if(Vr>0) digitalWrite(M2DIR,HIGH);
+  else digitalWrite(M2DIR,LOW);
+  analogWrite(M1SPD,abs(Vl));
+  analogWrite(M2SPD,abs(Vr));
+  
+  thetaLlast=thetaL;
+  thetaRlast=thetaR;
+  lastex=ex;
+
+  if(millis()-loopTime<20) delay(20-(millis()-loopTime));
+}
