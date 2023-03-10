@@ -9,6 +9,7 @@
 #define M2DIR 8
 #define M1SPD 9
 #define M2SPD 10
+#define PHI_THRESH 0.03
 #define SLAVE_ADDRESS 0x04
 #define CNTS_PER_REV 3200
 #define MAX_SPEED 80
@@ -24,9 +25,10 @@ double thetaR=0;
 double x=0;
 double y=0;
 double phi=0;
-double desX=0;
-double desY=0;
+double desDist=20;
 double desPhi=PI/2;
+double desX=desDist*cos(desPhi);
+double desY=desDist*sin(desPhi);
 
 int16_t cntL=0;
 int16_t cntR=0;
@@ -36,7 +38,7 @@ Encoder motorRight(3,5);
 
 void setup() {
   //Begin Serial and Wire comms
-  Serial.begin(9600);
+  Serial.begin(230400);
   //Wire.begin(SLAVE_ADDRESS);
 
   //Initialize pins for motor driver control
@@ -71,7 +73,10 @@ void loop() {
   static double dex=0;
   static double intex=0;
   static double ey=0;
+  static double intey=0;
   static double ephi=0;
+  static double intephi=0;
+  static uint8_t wait=0;
 
   thetaL = motorLeft.read()*2*PI/CNTS_PER_REV;
   dthetaL = thetaL - thetaLlast;
@@ -84,17 +89,18 @@ void loop() {
 
   //Errors
   //Do we want an x error, y error, and theta error? Or do we want a V error and theta error? Or what?
-  ex = desX-x;
-  ey = desY-y;
+  ex = desX-x - wait*desX;
+  ey = desY-y - wait*desY;
   ephi = desPhi-phi;
-  dex = (ex-lastex)*1000000/micros();
-  intex += ex*(micros()-lastTime);
+  intex += ex*(double)(micros()-lastTime)/1000000; //OR SHOULD IT BE desX*wait-ex ???
+  intey += ey*(double)(micros()-lastTime)/1000000;
+  intephi += ephi*(double)(micros()-lastTime)/1000000;
   
   lastTime=micros();//Set last time as soon as you finish time-sensitive calculations
 
   x += (dthetaR+dthetaL)*(R/2)*cos(phi);
   y += (dthetaR+dthetaL)*(R/2)*sin(phi);
-  phi = R*(thetaR-thetaL)/(2*b); //IS THIS RIGHT?
+  phi = R*(thetaR-thetaL)/(2*b);
   
   //TODO: From wL and wR, get instantaneous robot velocities (translational and rotational). These are for control, not positioning
   v = R*(wR+wL)/2; //Translational velocity
@@ -102,24 +108,31 @@ void loop() {
 
   //Calculate the P, I, and D terms for PID control
 
+  static uint32_t angleCooldown=0;
   static double Kpv=1;
   static double Kpw=10;
-  static double Kdv=0;
+  static double Kiv=0;
+  static double Kiw=0;
   //Calculate the applied voltage (in the form of a duty cycle) based on the PID controller, for each wheel
-  Vl = (255/8)*(Kpv*(ex*cos(phi)+ey*sin(phi)) - Kpw*ephi);
-  Vr = (255/8)*(Kpv*(ex*cos(phi)+ey*sin(phi)) + Kpw*ephi);//The +/- Kpw*ephi controls how velocity should be REDUCED according to a theta error (not increased because it will just saturate)
+  if(ephi>PHI_THRESH) angleCooldown=micros();
+  if(desPhi==0 || micros()-angleCooldown>2000000) wait=0; //wait=0 means go ahead and pursue x position
+  else wait=1;
+  if(abs(ex)<0.05 && abs(ey)<0.05) Kiv=0;
+  else Kiv=1;
+  Vl = (255.0/8)*(((Kpv*ex+Kiv*intex)*cos(phi)+(Kpv*ey+Kiv*intey)*sin(phi)) - Kpw*ephi - Kiw*intephi);
+  Vr = (255.0/8)*(((Kpv*ex+Kiv*intex)*cos(phi)+(Kpv*ey+Kiv*intey)*sin(phi)) + Kpw*ephi + Kiw*intephi); //The +/- Kpw*ephi controls how velocity should be REDUCED according to a theta error (not increased because it will just saturate)
   if(Vl>MAX_SPEED) Vl=MAX_SPEED;
   if(Vl<-MAX_SPEED) Vl=-MAX_SPEED;
   if(Vr>MAX_SPEED) Vr=MAX_SPEED;
   if(Vr<-MAX_SPEED) Vr=-MAX_SPEED;
 
   //Print out current position
-//  Serial.print("x: ");
-//  Serial.print(x);
-//  Serial.print("\ty: ");
-//  Serial.print(y);
-//  Serial.print("\tphi: ");
-//  Serial.println(phi);
+  Serial.print("x: ");
+  Serial.print(x);
+  Serial.print("\ty: ");
+  Serial.print(y);
+  Serial.print("\tphi: ");
+  Serial.println(phi);
 
   //Drive Motor
   if(Vl>0) digitalWrite(M1DIR,LOW);
