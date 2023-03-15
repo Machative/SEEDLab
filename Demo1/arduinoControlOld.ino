@@ -27,11 +27,9 @@ double y=0;
 double phi=0;
 double desDist=20;
 double desPhi=PI/2;
+//Calculate desired X and Y coordinates based on desired distance and angle
 double desX=desDist*cos(desPhi);
 double desY=desDist*sin(desPhi);
-
-int16_t cntL=0;
-int16_t cntR=0;
 
 Encoder motorLeft(2,4);
 Encoder motorRight(3,5);
@@ -49,8 +47,6 @@ void setup() {
   pinMode(M2SPD, OUTPUT);
 
   digitalWrite(EN,HIGH); //Enable motor driver
-  //Wire.onReceive(receiveData);
-  //Wire.onRequest(sendData);
 }
 
 void loop() {
@@ -78,6 +74,7 @@ void loop() {
   static double intephi=0;
   static uint8_t wait=0;
 
+  //Read motor positions and convert to radians, and get changes from last readings
   thetaL = motorLeft.read()*2*PI/CNTS_PER_REV;
   dthetaL = thetaL - thetaLlast;
   thetaR = motorRight.read()*2*PI/CNTS_PER_REV;
@@ -88,39 +85,46 @@ void loop() {
   wR = dthetaR*1000000/(micros()-lastTime);
 
   //Errors
-  //Do we want an x error, y error, and theta error? Or do we want a V error and theta error? Or what?
-  ex = desX-x - wait*desX;
+  ex = desX-x - wait*desX; //This wait variable is used to try to ignore the x and y errors until the turn is complete
   ey = desY-y - wait*desY;
   ephi = desPhi-phi;
-  intex += ex*(double)(micros()-lastTime)/1000000; //OR SHOULD IT BE desX*wait-ex ???
+  intex += ex*(double)(micros()-lastTime)/1000000;
   intey += ey*(double)(micros()-lastTime)/1000000;
   intephi += ephi*(double)(micros()-lastTime)/1000000;
   
   lastTime=micros();//Set last time as soon as you finish time-sensitive calculations
 
+  //Update current position in (x,y,phi) coordinates based on differential drive kinematic equations
   x += (dthetaR+dthetaL)*(R/2)*cos(phi);
   y += (dthetaR+dthetaL)*(R/2)*sin(phi);
   phi = R*(thetaR-thetaL)/(2*b);
   
-  //TODO: From wL and wR, get instantaneous robot velocities (translational and rotational). These are for control, not positioning
   v = R*(wR+wL)/2; //Translational velocity
   w = R*(wR-wL)/b; //Angular velocity
-
-  //Calculate the P, I, and D terms for PID control
 
   static uint32_t angleCooldown=0;
   static double Kpv=1;
   static double Kpw=10;
   static double Kiv=0;
   static double Kiw=0;
-  //Calculate the applied voltage (in the form of a duty cycle) based on the PID controller, for each wheel
+
+  //If angle has settled for enough time, go ahead and pursue (x,y) position
+  //If not, ignore x and y errors using wait command above
   if(ephi>PHI_THRESH) angleCooldown=micros();
-  if(desPhi==0 || micros()-angleCooldown>2000000) wait=0; //wait=0 means go ahead and pursue x position
+  if(desPhi==0 || micros()-angleCooldown>2000000) wait=0;
   else wait=1;
+  
+  //If x and y errors are sufficiently low, stop integrating and just settle there
   if(abs(ex)<0.05 && abs(ey)<0.05) Kiv=0;
   else Kiv=1;
+  
+  //Control Structure
+  //x and y error terms are projected on x and y axes based on current angle.
+  //The +/- Kpw*ephi controls how velocity should be reduced according to a theta error (not increased because it will just saturate)
   Vl = (255.0/8)*(((Kpv*ex+Kiv*intex)*cos(phi)+(Kpv*ey+Kiv*intey)*sin(phi)) - Kpw*ephi - Kiw*intephi);
-  Vr = (255.0/8)*(((Kpv*ex+Kiv*intex)*cos(phi)+(Kpv*ey+Kiv*intey)*sin(phi)) + Kpw*ephi + Kiw*intephi); //The +/- Kpw*ephi controls how velocity should be REDUCED according to a theta error (not increased because it will just saturate)
+  Vr = (255.0/8)*(((Kpv*ex+Kiv*intex)*cos(phi)+(Kpv*ey+Kiv*intey)*sin(phi)) + Kpw*ephi + Kiw*intephi);
+  
+  //Saturate the speed at some speed limit
   if(Vl>MAX_SPEED) Vl=MAX_SPEED;
   if(Vl<-MAX_SPEED) Vl=-MAX_SPEED;
   if(Vr>MAX_SPEED) Vr=MAX_SPEED;
