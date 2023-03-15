@@ -86,6 +86,7 @@ while cap.isOpened():
         angle = halfView*(xPixFromCenter/(horizontalPixels/2))
         print('The first marker is ', angle, 'degrees away from the center of the image')
         
+        # Print the angle to the LCD screen
         time.sleep(.1)
         lcd.text_direction = lcd.LEFT_TO_RIGHT
         lcd.message = "Angle: " + str(angle)
