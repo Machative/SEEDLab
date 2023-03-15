@@ -82,7 +82,6 @@ while cap.isOpened():
         print(xCenter)
         #Calculates the angle
         xPixFromCenter = (horizontalPixels/2) - xCenter
-        
         angle = halfView*(xPixFromCenter/(horizontalPixels/2))
         print('The first marker is ', angle, 'degrees away from the center of the image')
         
