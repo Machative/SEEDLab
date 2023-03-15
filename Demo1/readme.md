@@ -8,4 +8,4 @@ The file arduinoControlOld.ino was the original attempt at the control system fo
 
 The file robotTunedExp.ino contains the final control system for the robot. Instead of using an x,y,phi system, this control system simply separates the turning and driving into two explicit controlled motions. The turning is executed first in its own control loop with its own PID values, and then the straight-line driving is executed second in its own control loop. The actions are treated as completely separate, in contrast with the original control scheme which tried to combine them and thus overcomplicated the problem.
 
-The file demo1_detection.py __
+The file demo1_detection.py opens up a stream of camera frames, detects if any markers are present in the frame. If there are any markers present, it gets the pixel locations of each of the corners of the marker. It then uses the corner locations to find the center of the marker. Since the field of view of the camera is known, we can use it along side the markers location to calculate the horizontal angle at which the marker is away from the center of the frame. Then, we send this angle to the LCD display on the robot.
