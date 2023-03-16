@@ -2,8 +2,10 @@
 // 03/_/2023
 // Demo 1 Identification Experiments
 
+// Encoder library
 #include <Encoder.h>
 
+// Define motor pins
 #define EN1 4
 #define M1DIR 7
 #define M1SPD 9
@@ -17,20 +19,20 @@ boolean ran = false;
 boolean outBool = true;
 
 // Voltage variables
-// avgVa and delVa decide which variable is being measured.
+// avgVa and delVa decide which variable is being measured. One should be 8 and the other 0. Vapp is for the voltage fed into the motors.
 double avgVa = 0; double delVa = 8;
 double Vapp1=0; double Vapp2=0;
 
 // Timing variables
-int clk;
+int clk; // Used to implement step response and stop
 int newTime1 = 0  ; int newTime2 = 0;
 int oldTime1; int oldTime2;
 
-// Subset of Timing: March
+// Subset of Timing: March. Used to keep time at ~5 ms for the loop
 int march; int thresh = 5000;
 int marchStart; int marchEnd;
 
-// Displacement variables
+// Displacement variables record motor wheel displacement
 double disp1 = 0; double disp2 = 0;
 double oldDisp1; double oldDisp2;
 
@@ -38,6 +40,7 @@ double oldDisp1; double oldDisp2;
 double vel = 0; double rot = 0;
 double om1; double om2;
 
+// Robot physical parameters
 double dist = 0.275; // [m] 
 double radii = 0.149/2; // [m]
 
@@ -46,6 +49,7 @@ Encoder motorA(2,4);
 Encoder motorB(3,5);
 
 void setup() {
+  // Serial communication
   Serial.begin(230400);
   
   //Initialize pins for motor driver control
@@ -128,7 +132,7 @@ void loop() {
   vel = radii * (om1 + om2) / 2;
   rot = radii * (om1 - om2) / dist;
   
-  // Print outs
+  // Print outs and print logic
   if (clk > 8000 && ran) {
     outBool = false;  
   }
@@ -161,7 +165,7 @@ void loop() {
     Serial.println("DOST ERROR"); // DOST: Deviation Of Sampling Time
     Serial.println("");  
   }
-  else {
+  else { // wait until 5 ms
     while (march < thresh) {
       marchEnd = micros();
       march = marchEnd - marchStart;  
