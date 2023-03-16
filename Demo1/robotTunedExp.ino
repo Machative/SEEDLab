@@ -2,8 +2,10 @@
 // 03/_/2023
 // Demo 1 Identification Experiments
 
+// Encoder library used to deal with encoders on the motor
 #include <Encoder.h>
 
+// Set up the motors on the board for the pins they connect to
 #define EN1 4
 #define M1DIR 7
 #define M1SPD 9
@@ -13,31 +15,31 @@
 #define M2SPD 10
 
 // Logic variables
-boolean ran = false;
-boolean outBool = true;
-boolean proc = false;
-boolean turned=false;
-double phiErrors[40] = {5, 5, 5};
-double turnThresh = 0.01;
+boolean ran = false; // Whether the experiment has ran
+boolean outBool = true; // Whether to print out
+boolean proc = false; // Seems superfluous now
+boolean turned=false; // Whether robot has turned
+double phiErrors[40] = {5, 5, 5}; // List of last 40 phi errors
+double turnThresh = 0.01; //  At what level of radians off from the desired angle to start moving forward
 
 // Kp, Ki, Kd
-double PhiP = 25; double PhiI = 0; double PhiD = 0.1;
-double dPhiP = 1; double dPhiI = 0; double dPhiD = 0;
-double DistP = 1; double DistI = 0; double DistD = 0.1;
-double dDistP = 1; double dDistI = 0; double dDistD = 0;
+double PhiP = 25; double PhiI = 0; double PhiD = 0.1; // Phi
+double dPhiP = 1; double dPhiI = 0; double dPhiD = 0; // derivative of Phi
+double DistP = 1; double DistI = 0; double DistD = 0.1; // Distance
+double dDistP = 1; double dDistI = 0; double dDistD = 0; // derivative of Distance
 
 // Error variables
-double PhiE = 0; double PhidE = 0; double PhiintE = 0; double lastPhiE = 0;
-double DistE = 0; double DistdE = 0; double DistintE = 0; double lastDistE = 0;
-double dPhiE = 0; double dPhidE = 0; double dPhiintE = 0; double lastdPhiE = 0;
-double dDistE = 0; double dDistdE = 0; double dDistintE = 0; double lastdDistE = 0;
+double PhiE = 0; double PhidE = 0; double PhiintE = 0; double lastPhiE = 0; // Phi error
+double DistE = 0; double DistdE = 0; double DistintE = 0; double lastDistE = 0; // derivative of Phi error
+double dPhiE = 0; double dPhidE = 0; double dPhiintE = 0; double lastdPhiE = 0; // Distance error
+double dDistE = 0; double dDistdE = 0; double dDistintE = 0; double lastdDistE = 0; // derivative of Distance error
 
 // Voltage variables
-double Vapp1=0; double Vapp2=0;
+double Vapp1=0; double Vapp2=0; // Voltage applied to the motors
 
 // Timing variables
 // Subset of Timing: Global Experiment Clock
-int clk;
+int clk; // Determines whether robot should be running or not
 
 // Subset of Timing: Error Timing
 double presTime = 0; double prevTime = 0;
@@ -46,7 +48,7 @@ double presTime = 0; double prevTime = 0;
 int newTime1 = 0  ; int newTime2 = 0;
 int oldTime1; int oldTime2;
 
-// Subset of Timing: March
+// Subset of Timing: March. Used to keep loop time around ~5 ms
 int march; int thresh = 5000;
 int marchStart; int marchEnd;
 
@@ -60,8 +62,8 @@ double presDist = 0; double presPhi = 0;
 double setVel = 0; double setAngVel = 0;
 double vel = 0; double rot = 0;
 double om1; double om2;
-double om1Arr[5] = {0}; double om2Arr[5] = {0};
-double om1Avg = 0; double om2Avg = 0;
+double om1Arr[5] = {0}; double om2Arr[5] = {0}; // Last 5 angular velocities
+double om1Avg = 0; double om2Avg = 0; // Average velocity for both wheels
 double setdPhi = 0; double setdDist = 0;
 
 // Robot Paramters
@@ -94,7 +96,7 @@ void setup() {
   // Clock for sampling
   clk = millis();
 
-  // Timing
+  // Timing set up
   oldTime1 = micros();
   oldTime2 = oldTime1;
 
@@ -113,7 +115,7 @@ void loop() {
   // Loop execution:
   // 1st, get clk and determine whether to apply a step response
   // 2nd, read the encoders and get the displacement, velocity, etc.. from the results
-  // 3rd, PID control on inner and outer loop to dtermine voltage
+  // 3rd, PID math to determine error and subsequent PID control on inner and outer loop to determine voltage
   // 4th, convert PID values to voltage to apply to robot
   
   clk = millis();
@@ -124,8 +126,8 @@ void loop() {
   }
   
   else if (clk < 20000 && !ran) { // Apply step voltage as needed for avgVa or delVa
-    setPhi = 1*PI; // Fudge factor () * angle in radians
-    setDist = 1.03*3; // Fudge factor () * distance in meters
+    setPhi = 1*PI; // Fudge factor (1) * angle in radians, is the set angle
+    setDist = 1.03*3; // Fudge factor (1.03) * distance in meters, is the set distance
   }
 
   else { // Stop
