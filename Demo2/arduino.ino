@@ -49,6 +49,7 @@ void loop() {
   static double dist=0;
   static double edist=0;
   static double ephi=0;
+  static double intephi=0;
   static double thetaL=0;
   static double dthetaL=0;
   static double thetaR=0;
@@ -110,13 +111,14 @@ void loop() {
   edist = desDist-dist;
   ephi = desPhi-phi;
   //dex = ex*1000000/(micros()-lastTime);
-  //intex += ex*(double)(micros()-lastTime)/1000000;
+  intephi += ephi*(double)(micros()-lastTime)/1000000;
 
   static double Kpv=1;
   static double Kpw=1;
+  static double Kiw=1;
 
-  Vl = (255.0/8)*(Kpv*edist - Kpw*ephi);
-  Vr = (255.0/8)*(Kpv*edist + Kpw*ephi); //The +/- Kpw*ephi controls how velocity should be REDUCED according to a theta error (not increased because it will just saturate)
+  Vl = (255.0/8)*(Kpv*edist - Kpw*ephi - Kiw*intephi);
+  Vr = (255.0/8)*(Kpv*edist + Kpw*ephi + Kiw*intephi); //The +/- Kpw*ephi controls how velocity should be REDUCED according to a theta error (not increased because it will just saturate)
 
   if(Vl>MAX_SPEED) Vl=MAX_SPEED;
   if(Vl<-MAX_SPEED) Vl=-MAX_SPEED;
