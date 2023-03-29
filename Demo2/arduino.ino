@@ -4,6 +4,8 @@
 #include <Wire.h>
 #include <Encoder.h>
 
+#define SLAVE_ADDRESS 0X04
+
 #define EN 4
 #define M1DIR 7
 #define M2DIR 8
@@ -24,11 +26,20 @@ float b = 14; //b is the distance from wheel to axis of rotation, NOT distance b
 Encoder motorLeft(2,4);
 Encoder motorRight(3,5);
 
+int number = 0;
+int temp = 0;
+int len = 0;
+float angle = 0;
+
+byte data[3] = {0};
+
 void setup() {
   //Begin Serial and Wire comms
-  Serial.begin(9600);
-  //Wire.begin(SLAVE_ADDRESS);
-
+  pinMode(13, OUTPUT);
+  Serial.begin(115200);
+ 
+  Wire.begin(SLAVE_ADDRESS);
+  Wire.onReceive(recieveData);
   //Initialize pins for motor driver control
   pinMode(EN,OUTPUT);
   pinMode(M1DIR, OUTPUT);
@@ -41,6 +52,29 @@ void setup() {
   //Wire.onRequest(sendData);
 }
 
+void recieveData(int byteCount) {
+  
+  int i = 0;
+  
+  while(Wire.available()) {
+    number = Wire.read();
+    
+    if ((i>0)) {
+      //data[i -1] = number;
+      angle += number;
+      //Serial.print(number);
+      //Serial.print(' ');
+      len = byteCount;
+    }
+    i++;
+  }
+  if (i > 1) {
+    temp i - 1;
+  }
+  //Serial.print(temp);
+  //Serial.print(' ');
+}
+
 void loop() {
   static uint32_t loopTime=0;
   static double Vl=0;
@@ -49,7 +83,6 @@ void loop() {
   static double dist=0;
   static double edist=0;
   static double ephi=0;
-  static double intephi=0;
   static double thetaL=0;
   static double dthetaL=0;
   static double thetaR=0;
@@ -111,14 +144,13 @@ void loop() {
   edist = desDist-dist;
   ephi = desPhi-phi;
   //dex = ex*1000000/(micros()-lastTime);
-  intephi += ephi*(double)(micros()-lastTime)/1000000;
+  //intex += ex*(double)(micros()-lastTime)/1000000;
 
   static double Kpv=1;
   static double Kpw=1;
-  static double Kiw=1;
 
-  Vl = (255.0/8)*(Kpv*edist - Kpw*ephi - Kiw*intephi);
-  Vr = (255.0/8)*(Kpv*edist + Kpw*ephi + Kiw*intephi); //The +/- Kpw*ephi controls how velocity should be REDUCED according to a theta error (not increased because it will just saturate)
+  Vl = (255.0/8)*(Kpv*edist - Kpw*ephi);
+  Vr = (255.0/8)*(Kpv*edist + Kpw*ephi); //The +/- Kpw*ephi controls how velocity should be REDUCED according to a theta error (not increased because it will just saturate)
 
   if(Vl>MAX_SPEED) Vl=MAX_SPEED;
   if(Vl<-MAX_SPEED) Vl=-MAX_SPEED;
