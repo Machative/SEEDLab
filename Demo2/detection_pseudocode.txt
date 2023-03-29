@@ -1,5 +1,5 @@
-Part 1, find how big the marker is in pixels when approximately 1 foot away. Have the robot drive forward until the aruco marker takes up more pixels than when the marker
+Part 1, find how tall the marker is in pixels when approximately 1 foot away. Have the robot drive forward until the aruco marker takes up more vertical pixels than when the marker
 is 1 foot away.
 
-Part 2, the marker will be 3-5 feet away.To find how far away marker is, take measurements of how many pixels the marker is when right in front of the robot, have the 
+Part 2, the marker will be 3-5 feet away.To find how far away marker is, take measurements of how many vertical pixels the marker is when right in front of the robot, have the 
 robot drive until the marker takes up close to that many pixels.
