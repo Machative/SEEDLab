@@ -34,7 +34,11 @@ cap = cv.VideoCapture(0)
 
 #Convert to lower resolution (half of 1920x1080) to allow for faster detection
 #PiCamera.resolution = (960,540)
-        
+     
+def writeNumber(data):
+        bus.write_i2C_block_data(address,0,data)
+        return -1
+
 #Captures each frame of the video
 while cap.isOpened():
     x, getFrame = cap.read()
@@ -85,10 +89,18 @@ while cap.isOpened():
         angle = halfView*(xPixFromCenter/(horizontalPixels/2))
         print('The first marker is ', angle, 'degrees away from the center of the image')
         
+        intAngle = int(angle)
+        decAngle = angle - decAngle
+        
+        data[0] = intAngle
+        data[1] = decAngle
+        writeNumber(data)
+        print(data)
+        
         # Print the angle to the LCD screen
-        time.sleep(.1)
-        lcd.text_direction = lcd.LEFT_TO_RIGHT
-        lcd.message = "Angle: " + str(angle)
+        #time.sleep(.1)
+        #lcd.text_direction = lcd.LEFT_TO_RIGHT
+        #lcd.message = "Angle: " + str(angle)
         
         
         
