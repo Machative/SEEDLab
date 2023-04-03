@@ -34,7 +34,7 @@ cap = cv.VideoCapture(0)
 
 #Convert to lower resolution (half of 1920x1080) to allow for faster detection
 #PiCamera.resolution = (960,540)
-     
+address = 0x04
 def writeNumber(data):
         bus.write_i2C_block_data(address,0,data)
         return -1
@@ -102,9 +102,12 @@ while cap.isOpened():
         
         intAngle = int(angle)
         decAngle = angle - decAngle
+        decAngle *= 10
+        decAngle = int(decAngle)
         
         data[0] = intAngle
         data[1] = decAngle
+        time.sleep(.1)
         writeNumber(data)
         print(data)
         
