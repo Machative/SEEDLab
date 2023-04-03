@@ -98,6 +98,7 @@ while cap.isOpened():
         print(markerHeight)
         #Tells robot to stop when marker is within a foot
         #### TYPE CODE HERE ####
+        #If marker height is greater than 100 pixels, then stop the robot from moving forward. (Within 1 foot)
         
         intAngle = int(angle)
         decAngle = angle - decAngle
