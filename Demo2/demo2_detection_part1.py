@@ -88,6 +88,16 @@ while cap.isOpened():
         xPixFromCenter = (horizontalPixels/2) - xCenter
         angle = halfView*(xPixFromCenter/(horizontalPixels/2))
         print('The first marker is ', angle, 'degrees away from the center of the image')
+     
+        #Approximates pixel location based on corner locations
+        xCenter = (x1+x2+x3+x4)/4
+        yCenter = (y1+y2+y3+y4)/4
+        yTopCenter = (y1+y2)/2
+        yBotCenter = (y3+y4)/2
+        markerHeight = yTopCenter-yBotCenter
+        print(markerHeight)
+        #Tells robot to stop when marker is within a foot
+        #### TYPE CODE HERE ####
         
         intAngle = int(angle)
         decAngle = angle - decAngle
