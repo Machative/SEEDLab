@@ -4,8 +4,6 @@
 #include <Wire.h>
 #include <Encoder.h>
 
-#define SLAVE_ADDRESS 0X04
-
 #define EN 4
 #define M1DIR 7
 #define M2DIR 8
@@ -13,9 +11,10 @@
 #define M2SPD 10
 #define SLAVE_ADDRESS 0x04
 #define CNTS_PER_REV 3200
-#define MAX_SPEED 100
+#define MAX_SPEED 80
+#define SEARCH_SPEED 40
 
-#define idle 0
+#define search 0
 #define rotate 1
 #define drive 2
 
@@ -23,23 +22,21 @@
 float R = 7.5;
 float b = 14; //b is the distance from wheel to axis of rotation, NOT distance between wheels
 
+bool newVisionPhi=false;
+double visionPhi=0;
+uint16_t visionPixels=0;
+
+uint8_t state=search;
+
 Encoder motorLeft(2,4);
 Encoder motorRight(3,5);
 
-int number = 0;
-int temp = 0;
-int len = 0;
-float angle = 0;
-
-byte data[3] = {0};
-
 void setup() {
   //Begin Serial and Wire comms
-  pinMode(13, OUTPUT);
-  Serial.begin(115200);
- 
+  Serial.begin(9600);
   Wire.begin(SLAVE_ADDRESS);
   Wire.onReceive(recieveData);
+
   //Initialize pins for motor driver control
   pinMode(EN,OUTPUT);
   pinMode(M1DIR, OUTPUT);
@@ -48,31 +45,31 @@ void setup() {
   pinMode(M2SPD, OUTPUT);
 
   digitalWrite(EN,HIGH); //Enable motor driver
-  //Wire.onReceive(receiveData);
   //Wire.onRequest(sendData);
 }
 
 void recieveData(int byteCount) {
-  
-  int i = 0;
-  
-  while(Wire.available()) {
-    number = Wire.read();
-    
-    if ((i>0)) {
-      //data[i -1] = number;
-      angle += number;
-      //Serial.print(number);
-      //Serial.print(' ');
-      len = byteCount;
+  if(state==rotate){
+    int8_t bytes[byteCount];
+    uint8_t i=0;
+    while(Wire.available()){
+      bytes[i]=Wire.read();
+      i++;
     }
-    i++;
+    for(i=0;i<byteCount;i++){
+      Serial.println(bytes[i]);
+    }
+    Serial.println("-----");
+    double visionPhi = bytes[1] + bytes[2]/10.0;
+    newVisionPhi=true;
+    Serial.println(visionPhi);
   }
-  if (i > 1) {
-    temp i - 1;
+  else if(state==drive){
+    Wire.read(); //Discrd first null byte
+    uint8_t pixelsHigh = Wire.read();
+    uint8_t pixelsLow = Wire.read();
+    visionPixels = pixelsHigh*256 + pixelsLow;
   }
-  //Serial.print(temp);
-  //Serial.print(' ');
 }
 
 void loop() {
@@ -83,6 +80,8 @@ void loop() {
   static double dist=0;
   static double edist=0;
   static double ephi=0;
+  static double intedist=0;
+  static double intephi=0;
   static double thetaL=0;
   static double dthetaL=0;
   static double thetaR=0;
@@ -90,7 +89,6 @@ void loop() {
   static double thetaLlast=0;
   static double thetaRlast=0;
   static uint32_t lastTime=0;
-  static uint8_t state=idle;
   loopTime=millis();
  
   thetaL = motorLeft.read()*2*PI/CNTS_PER_REV;
@@ -113,50 +111,61 @@ void loop() {
   static double desDist=0;
   static double desPhi=0;
 
+  //Errors
+  edist = desDist-dist;
+  ephi = desPhi-phi;
+  //dex = ex*1000000/(micros()-lastTime);
+  intedist += edist*(double)(micros()-lastTime)/1000000;
+  intephi += ephi*(double)(micros()-lastTime)/1000000;
+
+  static double Kpv=1;
+  static double Kiv=2;
+  static double Kpw=3;
+  static double Kiw=15;
+
   //FSM
-  if(state==idle){
+  if(state==search){
     //Deal with receiving marker locations
-    
-    if(true){ //Begin rotating
+    Vl = SEARCH_SPEED;
+    Vr = -SEARCH_SPEED;
+    if(true){ // If marker found
       desDist=dist;
-      desPhi=phi+(PI/2); //Desired rotation angle
+      desPhi=phi+visionPhi; //Desired rotation angle
       state=rotate;
     }
   }else if(state==rotate){
     //Deal with checking if rotation is "complete"
-
+    if(newVisionPhi){
+      desPhi=phi+visionPhi;
+      newVisionPhi=false;
+    }
+    Vl = (255.0/8)*(-Kpw*ephi - Kiw*intephi);
+    Vr = (255.0/8)*(Kpw*ephi + Kiw*intephi);
     if(false){//If done rotating and you want to drive
-      desDist=dist;// + distToTarget (from camera)
+      desDist=dist+20;// + distToTarget (from camera)
       desPhi=phi;
       state=drive;
+      //TODO: TELL THE PI TO START SENDING PIXEL HEIGHT
     }
   }else if(state==drive){
     //Deal with checking if drive is "complete"
-    
-    if(false){//If done driving and you want to return to idle
+    Vl = (255.0/8)*(Kpv*edist + Kiv*intedist - Kpw*ephi - Kiw*intephi);
+    Vr = (255.0/8)*(Kpv*edist + Kiv*intedist + Kpw*ephi + Kiw*intephi);
+    if(false){//If done driving and you want to return to search
       desDist=dist;
       desPhi=phi;
-      state=idle;
+      state=search;
     }
   }
-
-  //  //Errors
-  edist = desDist-dist;
-  ephi = desPhi-phi;
-  //dex = ex*1000000/(micros()-lastTime);
-  //intex += ex*(double)(micros()-lastTime)/1000000;
-
-  static double Kpv=1;
-  static double Kpw=1;
-
-  Vl = (255.0/8)*(Kpv*edist - Kpw*ephi);
-  Vr = (255.0/8)*(Kpv*edist + Kpw*ephi); //The +/- Kpw*ephi controls how velocity should be REDUCED according to a theta error (not increased because it will just saturate)
 
   if(Vl>MAX_SPEED) Vl=MAX_SPEED;
   if(Vl<-MAX_SPEED) Vl=-MAX_SPEED;
   if(Vr>MAX_SPEED) Vr=MAX_SPEED;
   if(Vr<-MAX_SPEED) Vr=-MAX_SPEED;
 
+  Vl=0;//Deactivate temporarily
+  Vr=0;
+  
   //Drive Motor
   if(Vl>0) digitalWrite(M1DIR,LOW);
   else digitalWrite(M1DIR,HIGH);
@@ -165,8 +174,6 @@ void loop() {
   analogWrite(M1SPD,abs(Vl));
   analogWrite(M2SPD,abs(Vr));
 
-  Serial.println(edist);
-  
   thetaLlast=thetaL;
   thetaRlast=thetaR;
 
