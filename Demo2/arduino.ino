@@ -28,8 +28,6 @@ uint16_t visionPixels=0;
 
 uint8_t state=search;
 
-uint8_t found = 0; // when the marker is found, found = 1
-
 Encoder motorLeft(2,4);
 Encoder motorRight(3,5);
 
@@ -39,6 +37,7 @@ void setup() {
   Wire.begin(SLAVE_ADDRESS);
   Wire.onReceive(recieveData);
   Wire.onRequest(sendData);
+  Wire.onReceive(recieveHeight);
 
   //Initialize pins for motor driver control
   pinMode(EN,OUTPUT);
@@ -73,7 +72,19 @@ void recieveData(int byteCount) {
     visionPixels = pixelsHigh*256 + pixelsLow;
   }
 }
+/*
+// uint8_t found = 0; 
+void sendData(){
+  Wire.write(found); 
+}
+*/
 
+/*
+uint8_t height = 0;
+void recieveHeight(int byteCount) {
+  height = Wire.read();
+}
+*/
 void loop() {
   static uint32_t loopTime=0;
   static double Vl=0;
@@ -124,7 +135,8 @@ void loop() {
   static double Kiv=2;
   static double Kpw=3;
   static double Kiw=15;
-
+  uint8_t found = 0; // when the marker is found, found = 1
+  uint8_t height = 0;
   //FSM
   if(state==search){
     //Deal with receiving marker locations
@@ -151,6 +163,10 @@ void loop() {
       state=drive;
       //TODO: TELL THE PI TO START SENDING PIXEL HEIGHT
       found = 1;
+      Wire.write(found); // not sure if this needs to be in sendData() function
+      // sendData();
+      height = Wire.recieve(); 
+      // recieveHeight();
       // send to PI and then send
     }
   }else if(state==drive){
