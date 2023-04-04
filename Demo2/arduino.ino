@@ -28,6 +28,8 @@ uint16_t visionPixels=0;
 
 uint8_t state=search;
 
+uint8_t found = 0; // when the marker is found, found = 1
+
 Encoder motorLeft(2,4);
 Encoder motorRight(3,5);
 
@@ -36,6 +38,7 @@ void setup() {
   Serial.begin(9600);
   Wire.begin(SLAVE_ADDRESS);
   Wire.onReceive(recieveData);
+  Wire.onRequest(sendData);
 
   //Initialize pins for motor driver control
   pinMode(EN,OUTPUT);
@@ -45,7 +48,6 @@ void setup() {
   pinMode(M2SPD, OUTPUT);
 
   digitalWrite(EN,HIGH); //Enable motor driver
-  //Wire.onRequest(sendData);
 }
 
 void recieveData(int byteCount) {
@@ -133,11 +135,13 @@ void loop() {
       desPhi=phi+visionPhi; //Desired rotation angle
       state=rotate;
     }
+    found = 0;
   }else if(state==rotate){
     //Deal with checking if rotation is "complete"
     if(newVisionPhi){
       desPhi=phi+visionPhi;
       newVisionPhi=false;
+      found = 0;
     }
     Vl = (255.0/8)*(-Kpw*ephi - Kiw*intephi);
     Vr = (255.0/8)*(Kpw*ephi + Kiw*intephi);
@@ -146,6 +150,8 @@ void loop() {
       desPhi=phi;
       state=drive;
       //TODO: TELL THE PI TO START SENDING PIXEL HEIGHT
+      found = 1;
+      // send to PI and then send
     }
   }else if(state==drive){
     //Deal with checking if drive is "complete"
