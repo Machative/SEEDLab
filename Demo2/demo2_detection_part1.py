@@ -35,9 +35,17 @@ cap = cv.VideoCapture(0)
 #Convert to lower resolution (half of 1920x1080) to allow for faster detection
 #PiCamera.resolution = (960,540)
 address = 0x04
+data = [0,0]
+height [0,0]
 def writeNumber(data):
         bus.write_i2C_block_data(address,0,data)
         return -1
+
+def writeHeight(height):
+        bus.write_byte(address, height)
+def readNumber():
+        number = bus.read_byte(address)
+        return number
 
 #Captures each frame of the video
 while cap.isOpened():
@@ -88,17 +96,6 @@ while cap.isOpened():
         xPixFromCenter = (horizontalPixels/2) - xCenter
         angle = halfView*(xPixFromCenter/(horizontalPixels/2))
         print('The first marker is ', angle, 'degrees away from the center of the image')
-     
-        #Approximates pixel location based on corner locations
-        xCenter = (x1+x2+x3+x4)/4
-        yCenter = (y1+y2+y3+y4)/4
-        yTopCenter = (y1+y2)/2
-        yBotCenter = (y3+y4)/2
-        markerHeight = yTopCenter-yBotCenter
-        print(markerHeight)
-        #Tells robot to stop when marker is within a foot
-        #### TYPE CODE HERE ####
-        #If marker height is greater than 100 pixels, then stop the robot from moving forward. (Within 1 foot)
         
         intAngle = int(angle)
         decAngle = angle - decAngle
@@ -110,6 +107,23 @@ while cap.isOpened():
         time.sleep(.1)
         writeNumber(data)
         print(data)
+        
+     
+        #Approximates pixel location based on corner locations
+        xCenter = (x1+x2+x3+x4)/4
+        yCenter = (y1+y2+y3+y4)/4
+        yTopCenter = (y1+y2)/2
+        yBotCenter = (y3+y4)/2
+        markerHeight = yTopCenter-yBotCenter
+        print(markerHeight)
+        #Tells robot to stop when marker is within a foot
+        #### TYPE CODE HERE ####
+        
+        status = readNumber()
+        if (status == 1):
+                writeHeight(markerHeight)
+        
+        #If marker height is greater than 100 pixels, then stop the robot from moving forward. (Within 1 foot)
         
         # Print the angle to the LCD screen
         #time.sleep(.1)
