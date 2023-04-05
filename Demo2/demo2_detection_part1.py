@@ -112,7 +112,7 @@ while cap.isOpened():
         #Approximates pixel location based on corner locations
         yTopCenter = (y1+y2)/2
         yBotCenter = (y3+y4)/2
-        markerHeight = yTopCenter-yBotCenter
+        markerHeight = abs(yTopCenter-yBotCenter)
         print(markerHeight)
         #Tells robot to stop when marker is within a foot
         #### TYPE CODE HERE ####
