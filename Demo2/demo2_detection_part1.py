@@ -110,8 +110,6 @@ while cap.isOpened():
         
      
         #Approximates pixel location based on corner locations
-        xCenter = (x1+x2+x3+x4)/4
-        yCenter = (y1+y2+y3+y4)/4
         yTopCenter = (y1+y2)/2
         yBotCenter = (y3+y4)/2
         markerHeight = yTopCenter-yBotCenter
