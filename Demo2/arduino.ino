@@ -12,17 +12,20 @@
 #define SLAVE_ADDRESS 0x04
 #define CNTS_PER_REV 3200
 #define MAX_SPEED 80
-#define SEARCH_SPEED 40
+#define SEARCH_SPEED 30
+#define APPROACH_SPEED 40
 
 #define search 0
 #define rotate 1
 #define drive 2
+#define idle 3
 
 //Robot Parameters
 float R = 7.5;
 float b = 14; //b is the distance from wheel to axis of rotation, NOT distance between wheels
 
 bool newVisionPhi=false;
+uint16_t lastPixelRead=0;
 double visionPhi=0;
 uint16_t visionPixels=0;
 
@@ -37,7 +40,6 @@ void setup() {
   Wire.begin(SLAVE_ADDRESS);
   Wire.onReceive(recieveData);
   Wire.onRequest(sendData);
-  Wire.onReceive(recieveHeight);
 
   //Initialize pins for motor driver control
   pinMode(EN,OUTPUT);
@@ -47,44 +49,43 @@ void setup() {
   pinMode(M2SPD, OUTPUT);
 
   digitalWrite(EN,HIGH); //Enable motor driver
+  //Wire.onRequest(sendData);
+}
+
+void sendData(){
+  if(state==drive) Wire.write(1);
+  else Wire.write(0);
 }
 
 void recieveData(int byteCount) {
-  if(state==rotate){
+  if(state==rotate || state==search || state==idle){
     int8_t bytes[byteCount];
     uint8_t i=0;
     while(Wire.available()){
       bytes[i]=Wire.read();
       i++;
     }
-    for(i=0;i<byteCount;i++){
-      Serial.println(bytes[i]);
-    }
-    Serial.println("-----");
-    double visionPhi = bytes[1] + bytes[2]/10.0;
+    visionPhi = (bytes[1] + bytes[2]/10.0)*(PI/180.0);
     newVisionPhi=true;
-    Serial.println(visionPhi);
+    Serial.print(visionPhi*(180.0/PI));
+    Serial.println(" degrees");
   }
   else if(state==drive){
-    Wire.read(); //Discrd first null byte
-    uint8_t pixelsHigh = Wire.read();
-    uint8_t pixelsLow = Wire.read();
+    int8_t bytes[byteCount];
+    uint8_t i=0;
+    while(Wire.available()){
+      bytes[i]=Wire.read();
+      i++;
+    }
+    uint8_t pixelsHigh = bytes[1];
+    uint8_t pixelsLow = bytes[2];
     visionPixels = pixelsHigh*256 + pixelsLow;
+    Serial.print(visionPixels);
+    Serial.println(" pixels");
+    lastPixelRead=millis();
   }
 }
-/*
-// uint8_t found = 0; 
-void sendData(){
-  Wire.write(found); 
-}
-*/
 
-/*
-uint8_t height = 0;
-void recieveHeight(int byteCount) {
-  height = Wire.read();
-}
-*/
 void loop() {
   static uint32_t loopTime=0;
   static double Vl=0;
@@ -135,58 +136,54 @@ void loop() {
   static double Kiv=2;
   static double Kpw=3;
   static double Kiw=15;
-  uint8_t found = 0; // when the marker is found, found = 1
-  uint8_t height = 0;
+
   //FSM
   if(state==search){
     //Deal with receiving marker locations
     Vl = SEARCH_SPEED;
     Vr = -SEARCH_SPEED;
-    if(true){ // If marker found
+    if(newVisionPhi==true){ // If marker found
+      newVisionPhi=false;
       desDist=dist;
       desPhi=phi+visionPhi; //Desired rotation angle
       state=rotate;
     }
-    found = 0;
   }else if(state==rotate){
     //Deal with checking if rotation is "complete"
     if(newVisionPhi){
       desPhi=phi+visionPhi;
       newVisionPhi=false;
-      found = 0;
     }
+    Serial.println(ephi);
     Vl = (255.0/8)*(-Kpw*ephi - Kiw*intephi);
     Vr = (255.0/8)*(Kpw*ephi + Kiw*intephi);
-    if(false){//If done rotating and you want to drive
-      desDist=dist+20;// + distToTarget (from camera)
+    if(abs(visionPhi) < 0.02 && abs(ephi) < 0.02){//If done rotating and you want to drive
+      desDist=dist;// + distToTarget (from camera)
       desPhi=phi;
       state=drive;
-      //TODO: TELL THE PI TO START SENDING PIXEL HEIGHT
-      found = 1;
-      Wire.write(found); // not sure if this needs to be in sendData() function
-      // sendData();
-      height = Wire.recieve(); 
-      // recieveHeight();
-      // send to PI and then send
     }
   }else if(state==drive){
     //Deal with checking if drive is "complete"
-    Vl = (255.0/8)*(Kpv*edist + Kiv*intedist - Kpw*ephi - Kiw*intephi);
-    Vr = (255.0/8)*(Kpv*edist + Kiv*intedist + Kpw*ephi + Kiw*intephi);
-    if(false){//If done driving and you want to return to search
+    //Vl = (255.0/8)*(Kpv*edist + Kiv*intedist - Kpw*ephi - Kiw*intephi);
+    //Vr = (255.0/8)*(Kpv*edist + Kiv*intedist + Kpw*ephi + Kiw*intephi);
+    Vl=-APPROACH_SPEED;
+    Vr=-APPROACH_SPEED;
+    if(visionPixels>125 || millis()-lastPixelRead > 1000){//If done driving
       desDist=dist;
       desPhi=phi;
-      state=search;
+      state=idle;
     }
+  }else if(state==idle){
+    Vl=0;
+    Vr=0;
   }
 
+  sendData();
+  
   if(Vl>MAX_SPEED) Vl=MAX_SPEED;
   if(Vl<-MAX_SPEED) Vl=-MAX_SPEED;
   if(Vr>MAX_SPEED) Vr=MAX_SPEED;
   if(Vr<-MAX_SPEED) Vr=-MAX_SPEED;
-
-  Vl=0;//Deactivate temporarily
-  Vr=0;
   
   //Drive Motor
   if(Vl>0) digitalWrite(M1DIR,LOW);
