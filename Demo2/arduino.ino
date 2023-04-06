@@ -16,9 +16,10 @@
 #define APPROACH_SPEED 40
 
 #define search 0
-#define rotate 1
-#define drive 2
-#define idle 3
+#define halt 1
+#define rotate 2
+#define drive 3
+#define idle 4
 
 //Robot Parameters
 float R = 7.5;
@@ -26,10 +27,11 @@ float b = 14; //b is the distance from wheel to axis of rotation, NOT distance b
 
 bool newVisionPhi=false;
 uint16_t lastPixelRead=0;
+uint16_t haltTime=0;
 double visionPhi=0;
 uint16_t visionPixels=0;
 
-uint8_t state=search;
+uint8_t state=search; //Begin program by searching for marker
 
 Encoder motorLeft(2,4);
 Encoder motorRight(3,5);
@@ -67,8 +69,8 @@ void recieveData(int byteCount) {
     }
     visionPhi = (bytes[1] + bytes[2]/10.0)*(PI/180.0);
     newVisionPhi=true;
-    Serial.print(visionPhi*(180.0/PI));
-    Serial.println(" degrees");
+//    Serial.print(visionPhi*(180.0/PI));
+//    Serial.println(" degrees");
   }
   else if(state==drive){
     int8_t bytes[byteCount];
@@ -80,8 +82,8 @@ void recieveData(int byteCount) {
     uint8_t pixelsHigh = bytes[1];
     uint8_t pixelsLow = bytes[2];
     visionPixels = pixelsHigh*256 + pixelsLow;
-    Serial.print(visionPixels);
-    Serial.println(" pixels");
+//    Serial.print(visionPixels);
+//    Serial.println(" pixels");
     lastPixelRead=millis();
   }
 }
@@ -140,24 +142,32 @@ void loop() {
   //FSM
   if(state==search){
     //Deal with receiving marker locations
-    Vl = SEARCH_SPEED;
-    Vr = -SEARCH_SPEED;
-    if(newVisionPhi==true){ // If marker found
+    if(newVisionPhi) state=halt; //If marker is visible immediately, go to halt which will then go to rotate
+    Vl = (255.0/8)*(-Kpw*ephi - Kiw*intephi);
+    Vr = (255.0/8)*(Kpw*ephi + Kiw*intephi);
+    if(abs(ephi)<0.03){
+      state=halt;
+      haltTime=millis();
+    }
+  else if(state==halt){
+    Vl=0;
+    Vr=0;
+    if(millis()-haltTime>1000) {
+      state=search;
+      desPhi = phi + 30.0*PI/180.0;
+    }
+    if(newVisionPhi){ // If marker found
       newVisionPhi=false;
       desDist=dist;
       desPhi=phi+visionPhi; //Desired rotation angle
       state=rotate;
     }
+  }
   }else if(state==rotate){
     //Deal with checking if rotation is "complete"
-    if(newVisionPhi){
-      desPhi=phi+visionPhi;
-      newVisionPhi=false;
-    }
-    Serial.println(ephi);
     Vl = (255.0/8)*(-Kpw*ephi - Kiw*intephi);
     Vr = (255.0/8)*(Kpw*ephi + Kiw*intephi);
-    if(abs(visionPhi) < 0.02 && abs(ephi) < 0.02){//If done rotating and you want to drive
+    if(abs(ephi) < 0.03){//If done rotating and you want to drive
       desDist=dist;// + distToTarget (from camera)
       desPhi=phi;
       state=drive;
