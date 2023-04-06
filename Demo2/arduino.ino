@@ -11,9 +11,7 @@
 #define M2SPD 10
 #define SLAVE_ADDRESS 0x04
 #define CNTS_PER_REV 3200
-#define MAX_SPEED 80
-#define SEARCH_SPEED 30
-#define APPROACH_SPEED 40
+#define MAX_SPEED 65
 
 #define search 0
 #define halt 1
@@ -26,8 +24,9 @@ float R = 7.5;
 float b = 14; //b is the distance from wheel to axis of rotation, NOT distance between wheels
 
 bool newVisionPhi=false;
-uint16_t lastPixelRead=0;
-uint16_t haltTime=0;
+uint32_t lastPixelRead=0;
+uint32_t haltTime=0;
+uint32_t offTarget=0;
 double visionPhi=0;
 uint16_t visionPixels=0;
 
@@ -51,7 +50,6 @@ void setup() {
   pinMode(M2SPD, OUTPUT);
 
   digitalWrite(EN,HIGH); //Enable motor driver
-  //Wire.onRequest(sendData);
 }
 
 void sendData(){
@@ -60,7 +58,7 @@ void sendData(){
 }
 
 void recieveData(int byteCount) {
-  if(state==rotate || state==search || state==idle){
+  if(state==rotate || state==halt || state==search || state==idle){
     int8_t bytes[byteCount];
     uint8_t i=0;
     while(Wire.available()){
@@ -68,7 +66,7 @@ void recieveData(int byteCount) {
       i++;
     }
     visionPhi = (bytes[1] + bytes[2]/10.0)*(PI/180.0);
-    newVisionPhi=true;
+    newVisionPhi = true;
 //    Serial.print(visionPhi*(180.0/PI));
 //    Serial.println(" degrees");
   }
@@ -112,17 +110,8 @@ void loop() {
   thetaR = motorRight.read()*2*PI/CNTS_PER_REV;
   dthetaR = thetaR - thetaRlast;
 
-  //Instantaneous Wheel Velocities (angular)
-  //wL = dthetaL*1000000/(micros()-lastTime);
-  //wR = dthetaR*1000000/(micros()-lastTime);
-
-  lastTime=micros();//Set last time as soon as you finish time-sensitive calculations
-
   dist += (dthetaR+dthetaL)*(R/2);
   phi += R*(dthetaR-dthetaL)/(2*b); //Is this right?
-  
-  //v = R*(wR+wL)/2; //Instantaneous Translational velocity
-  //w = R*(wR-wL)/b; //Instantaneous Angular velocity
 
   static double desDist=0;
   static double desPhi=0;
@@ -134,51 +123,63 @@ void loop() {
   intedist += edist*(double)(micros()-lastTime)/1000000;
   intephi += ephi*(double)(micros()-lastTime)/1000000;
 
-  static double Kpv=1;
+  lastTime=micros();//Set last time as soon as you finish time-sensitive calculations
+
+  static double Kpv=8;
   static double Kiv=2;
-  static double Kpw=3;
-  static double Kiw=15;
+  static double Kpw=8;
+  static double Kiw=13;
 
   //FSM
   if(state==search){
     //Deal with receiving marker locations
-    if(newVisionPhi) state=halt; //If marker is visible immediately, go to halt which will then go to rotate
+    if(newVisionPhi && Vl==0 && Vr==0) state=halt; //If marker is visible immediately, go to halt which will then go to rotate
     Vl = (255.0/8)*(-Kpw*ephi - Kiw*intephi);
     Vr = (255.0/8)*(Kpw*ephi + Kiw*intephi);
-    if(abs(ephi)<0.03){
+    if(abs(ephi)<0.05){
       state=halt;
       haltTime=millis();
     }
-  else if(state==halt){
+  }else if(state==halt){
     Vl=0;
     Vr=0;
-    if(millis()-haltTime>1000) {
+    if(millis()-haltTime>1500) {
       state=search;
-      desPhi = phi + 30.0*PI/180.0;
+      desPhi = phi + 45.0*PI/180.0;
+      intephi=0;
     }
     if(newVisionPhi){ // If marker found
       newVisionPhi=false;
       desDist=dist;
       desPhi=phi+visionPhi; //Desired rotation angle
+      intephi=0;
       state=rotate;
     }
-  }
   }else if(state==rotate){
     //Deal with checking if rotation is "complete"
-    Vl = (255.0/8)*(-Kpw*ephi - Kiw*intephi);
-    Vr = (255.0/8)*(Kpw*ephi + Kiw*intephi);
-    if(abs(ephi) < 0.03){//If done rotating and you want to drive
-      desDist=dist;// + distToTarget (from camera)
-      desPhi=phi;
-      state=drive;
+    Vl = (255.0/8)*(-3*ephi - 10*intephi);
+    Vr = (255.0/8)*(3*ephi + 10*intephi);
+    if(abs(ephi) >= 0.02){//If done rotating
+      offTarget=millis();
+    }
+    if(millis()-offTarget>1000){
+      if(abs(visionPhi) <= 0.02){//Definitely on target
+        desDist=dist-10;// + distToTarget (from camera)
+        desPhi=phi;
+        state=drive;
+        lastPixelRead=millis();
+      }else if(newVisionPhi){
+        desPhi=phi+visionPhi;
+        newVisionPhi=false;
+        intephi=0;
+      }
     }
   }else if(state==drive){
     //Deal with checking if drive is "complete"
-    //Vl = (255.0/8)*(Kpv*edist + Kiv*intedist - Kpw*ephi - Kiw*intephi);
-    //Vr = (255.0/8)*(Kpv*edist + Kiv*intedist + Kpw*ephi + Kiw*intephi);
-    Vl=-APPROACH_SPEED;
-    Vr=-APPROACH_SPEED;
-    if(visionPixels>125 || millis()-lastPixelRead > 1000){//If done driving
+    Vl = (255.0/8)*(Kpv*edist + Kiv*intedist);
+    Vr = (255.0/8)*(Kpv*edist + Kiv*intedist);
+    if(abs(edist)<3) desDist=dist-10;
+    if(visionPixels>115 || millis()-lastPixelRead > 500){//If done driving
       desDist=dist;
       desPhi=phi;
       state=idle;
