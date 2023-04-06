@@ -34,9 +34,12 @@ cap = cv.VideoCapture(0)
 
 #Convert to lower resolution (half of 1920x1080) to allow for faster detection
 #PiCamera.resolution = (960,540)
-address = 0x04
+intAngle = 0
+decAngle = 0
+number = 0
+status = 0
 data = [0,0]
-height [0,0]
+height = [0,0]
 def writeNumber(data):
         bus.write_i2C_block_data(address,0,data)
         return -1
@@ -95,18 +98,8 @@ while cap.isOpened():
         #Calculates the angle
         xPixFromCenter = (horizontalPixels/2) - xCenter
         angle = halfView*(xPixFromCenter/(horizontalPixels/2))
-        print('The first marker is ', angle, 'degrees away from the center of the image')
-        
-        intAngle = int(angle)
-        decAngle = angle - decAngle
-        decAngle *= 10
-        decAngle = int(decAngle)
-        
-        data[0] = intAngle
-        data[1] = decAngle
-        time.sleep(.1)
-        writeNumber(data)
-        print(data)
+        #print('The first marker is ', angle, 'degrees away from the center of the image')
+       
         
      
         #Approximates pixel location based on corner locations
@@ -118,8 +111,26 @@ while cap.isOpened():
         #### TYPE CODE HERE ####
         
         status = readNumber()
-        if (status == 1):
+        if (status == 0):
+                intAngle = int(angle)
+                decAngle = angle - int(angle)
+                decAngle *= 10
+                decAngle = int(decAngle)
+                
+                data[0] = intAngle
+                data[1] = decAngle
+               
                 writeHeight(markerHeight)
+                
+        elif(status == 1):
+                part1 = markerHeight / 256
+                part1= int(part1)
+                part2 = markerheight - part1
+                part2 = int(part2)
+                height[0] = part1
+                height[1] = part2
+                
+                writeHeight(height)
         
         #If marker height is greater than 100 pixels, then stop the robot from moving forward. (Within 1 foot)
         
