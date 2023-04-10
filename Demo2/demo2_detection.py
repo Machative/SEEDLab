@@ -135,8 +135,6 @@ while cap.isOpened():
          except:
                 print("IO ERROR")
         
-        #If marker height is greater than 100 pixels, then stop the robot from moving forward. (Within 1 foot)
-        
         # Print the angle to the LCD screen
         #time.sleep(.1)
         #lcd.text_direction = lcd.LEFT_TO_RIGHT
