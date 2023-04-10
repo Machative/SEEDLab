@@ -45,7 +45,8 @@ def writeNumber(data):
         return -1
 
 def writeHeight(height):
-        bus.write_byte(address, height)
+        bus.write_i2c_block_data(address, 0, height)
+        return -1
 def readNumber():
         number = bus.read_byte(address)
         return number
@@ -109,28 +110,30 @@ while cap.isOpened():
         print(markerHeight)
         #Tells robot to stop when marker is within a foot
         #### TYPE CODE HERE ####
-        
-        status = readNumber()
-        if (status == 0):
-                intAngle = int(angle)
-                decAngle = angle - int(angle)
-                decAngle *= 10
-                decAngle = int(decAngle)
+        try: 
+                status = readNumber()
+                if (status == 0):
+                        intAngle = int(angle)
+                        decAngle = angle - int(angle)
+                        decAngle *= 10
+                        decAngle = int(decAngle)
                 
-                data[0] = intAngle
-                data[1] = decAngle
+                        data[0] = intAngle
+                        data[1] = decAngle
                
-                writeHeight(markerHeight)
+                        writeHeight(markerHeight)
                 
-        elif(status == 1):
-                part1 = markerHeight / 256
-                part1= int(part1)
-                part2 = markerheight - part1
-                part2 = int(part2)
-                height[0] = part1
-                height[1] = part2
+                elif(status == 1):
+                        part1 = markerHeight / 256
+                        part1= int(part1)
+                        part2 = markerheight - part1
+                        part2 = int(part2)
+                        height[0] = part1
+                        height[1] = part2
                 
-                writeHeight(height)
+                        writeHeight(height)
+         except:
+                print("IO ERROR")
         
         #If marker height is greater than 100 pixels, then stop the robot from moving forward. (Within 1 foot)
         
@@ -138,7 +141,6 @@ while cap.isOpened():
         #time.sleep(.1)
         #lcd.text_direction = lcd.LEFT_TO_RIGHT
         #lcd.message = "Angle: " + str(angle)
-        
         
         
     drawnImg = cv.aruco.drawDetectedMarkers(getFrame, corners)
