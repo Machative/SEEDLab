@@ -12,6 +12,7 @@
 #define SLAVE_ADDRESS 0x04
 #define CNTS_PER_REV 3200
 
+//States to be used for Finite State Machine
 #define search 0
 #define halt 1
 #define rotate 2
@@ -53,12 +54,12 @@ void setup() {
 }
 
 void sendData(){
-  if(state==drive || state==rotate) Wire.write(1);
-  else Wire.write(0);
+  if(state==drive || state==rotate) Wire.write(1); //If state is drive or rotate, receive marker height
+  else Wire.write(0); //If searching or halting, receive marker angle
 }
 
 void recieveData(int byteCount) {
-  if(state==halt || state==search || state==idle){
+  if(state==halt || state==search || state==idle){ //Interpret I2C data as marker angle based on agreed-upon protocol
     int8_t bytes[byteCount];
     uint8_t i=0;
     while(Wire.available()){
@@ -68,7 +69,7 @@ void recieveData(int byteCount) {
     visionPhi = (bytes[1] + bytes[2]/10.0)*(PI/180.0);
     newVisionPhi = true;
   }
-  else {
+  else { //Interpret I2C data as pixel height
     int8_t bytes[byteCount];
     uint8_t i=0;
     while(Wire.available()){
@@ -101,19 +102,21 @@ void loop() {
   static double thetaRlast=0;
   static uint32_t lastTime=0;
   loopTime=millis();
- 
+
+  //Get current angle and change in angle of each wheel
   thetaL = motorLeft.read()*2*PI/CNTS_PER_REV;
   dthetaL = thetaL - thetaLlast;
   thetaR = motorRight.read()*2*PI/CNTS_PER_REV;
   dthetaR = thetaR - thetaRlast;
 
+  //Adjust distance and angle of robot accordingly
   dist += (dthetaR+dthetaL)*(R/2);
   phi += R*(dthetaR-dthetaL)/(2*b); //Is this right?
 
   static double desDist=0;
   static double desPhi=0;
 
-  //Errors
+  //Calculate errors for PI control
   edist = desDist-dist;
   ephi = desPhi-phi;
   dphi = ephi*1000000/(micros()-lastTime);
@@ -122,6 +125,7 @@ void loop() {
 
   lastTime=micros();//Set last time as soon as you finish time-sensitive calculations
 
+  //Control parameters (some of these are unused as they are specifically tuned to each state)
   static double Kpv=8;
   static double Kiv=2;
   static double Kpw=8;
@@ -136,7 +140,7 @@ void loop() {
     if(abs(ephi)>0.05){
       offTarget=millis();
     }
-    if(millis()-offTarget>200){
+    if(millis()-offTarget>200){ //If error is settled for 200ms, go to halt and check for marker
       state=halt;
       haltTime=millis();
     }
@@ -144,34 +148,32 @@ void loop() {
   }else if(state==halt){
     Vl=0;
     Vr=0;
-    if(!newVisionPhi && millis()-haltTime>1000) {
+    if(!newVisionPhi && millis()-haltTime>1000) { //If halted for 1s and no marker, go back to search
       state=search;
       desPhi = phi + 35.0*PI/180.0;
       intephi=0;
     }
-    if(newVisionPhi && millis()-waitTime>2000){ //Allow camera reading to settle
+    if(newVisionPhi && millis()-waitTime>2000){ //If marker found, allow camera to catch up. After 2s, get angle and go to rotate state
       desDist=dist;
       desPhi=phi+visionPhi; //Desired rotation angle
       intephi=0;
       state=rotate;
     }
   }else if(state==rotate){
-    //Deal with checking if rotation is "complete"
     Vl = (255.0/8)*(-6*ephi - 10*intephi);
     Vr = (255.0/8)*(6*ephi + 10*intephi);
-    if(abs(ephi) >= 0.04){//If done rotating
+    if(abs(ephi) >= 0.04){
       offTarget=millis();
     }
-    if(millis()-offTarget>1000){
-      desDist=dist-((2511.7/pow(visionPixels,0.987))-10);// + distToTarget (from camera)
+    if(millis()-offTarget>1000){ //If error is settled for 1s, go to drive
+      desDist=dist-((2511.7/pow(visionPixels,0.987))-10); //Calculate distance from marker height in pixels according to math model
       desPhi=phi;
       state=drive;
     }
   }else if(state==drive){
-    //Deal with checking if drive is "complete"
     Vl = (255.0/8)*(Kpv*edist + Kiv*intedist - 5*ephi);
     Vr = (255.0/8)*(Kpv*edist + Kiv*intedist + 5*ephi);
-    if(abs(edist)<0.5) state=idle;
+    if(abs(edist)<0.5) state=idle; //If done driving, go to idle
   }else if(state==idle){
     Vl=0;
     Vr=0;
@@ -179,6 +181,7 @@ void loop() {
 
   sendData();
 
+  //Speed limit depends on which state the robot is in
   static uint8_t speedLimit=0;
   if(state==drive) speedLimit=85;
   else speedLimit=70; 
