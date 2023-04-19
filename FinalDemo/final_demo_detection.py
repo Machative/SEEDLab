@@ -66,6 +66,13 @@ while cap.isOpened():
     if ids is None:
         print('No markers found')
     else:
+        #Gets the marker ID
+        markerID = ids
+        if markerID == 1:
+                #See the first marker
+                print('First marker seen')
+        #Do for all markers.
+        
         #1920x1080 imgage with a horizontal view of 66 degrees
         horizontalPixels = getFrame.shape[1]
         verticalPixels = getFrame.shape[0]
