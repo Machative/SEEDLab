@@ -47,6 +47,11 @@ def writeNumber(data):
 def writeHeight(height):
         bus.write_i2c_block_data(address, 0, height)
         return -1
+
+def sendMarkerID(markerID):
+        bus.write_byte_data(address, 0, markerID)
+        return -1
+
 def readNumber():
         number = bus.read_byte(address)
         return number
@@ -68,10 +73,29 @@ while cap.isOpened():
     else:
         #Gets the marker ID
         markerID = ids
-        if markerID == 1:
+        prtmessage = str(markerID) + " marker seen"
+        print(prtmessage)
+        
+        writeMarkerID(markerID)
+        
+        markerID += 1
+        
+        #if markerID == 1:
                 #See the first marker
-                print('First marker seen')
+                #writeMarkerID(markerID)
+                #print('First marker seen')
+                
         #Do for all markers.
+        #match markerID:
+        #        case 1:
+        #                writeMarkerID(markerID)
+        #                print('First marker seen')
+        #         case 2:
+        #                writeMarkerID(markerID)
+        #                print('second marker seen')
+        #         case 3:
+        #                writeMarkerID(markerID)
+        #                print('First marker seen')
         
         #1920x1080 imgage with a horizontal view of 66 degrees
         horizontalPixels = getFrame.shape[1]
@@ -139,6 +163,10 @@ while cap.isOpened():
                         height[1] = part2
                 
                         writeHeight(height)
+                        
+                if (markerID == 7):
+                        break                
+              
          except:
                 print("IO ERROR")
         
