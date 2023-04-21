@@ -1,0 +1,25 @@
+import numpy as np
+import cv2 as cv
+
+from picamera import PiCamera
+from time import sleep
+
+cap = cv.VideoCapture(0)
+
+desiredMarker = 1
+
+while cap.isOpened()
+  if not x:
+    print('Didn't get the frame. Ending the operation')
+    break
+    
+  dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6x6_1000)
+  arguments = cv.aruco.DetectorParameters_create()
+  (corners, ids, rejectedImgPoints) = cv.aruco.detectMarkers(getFrame, dictionary, parameters = arguments)
+  
+  if ids is None:
+    print('No markers found')
+    
+  else:
+    if any([desiredMarker] in nested_list for nested_list in ids):
+      
