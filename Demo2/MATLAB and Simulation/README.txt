@@ -1,5 +1,7 @@
-MATLAB & Simulation Files
+MATLAB & Simulation Files README
 DESCRIPTIONS OF MOST IF NOT ALL CONSTITUENT FILES BELOW.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 This folder contains work done to simulate the robot. 
 Note, the control systems developed here are not in use in the Arduino. Why?
@@ -11,7 +13,11 @@ Well, not neccessarily in order, a couple reasons.
 
 -   From personal/other reasons: I might have been more busy/occupied during this time period than others,  and also didn't want to put the time and effort that ultimately does not seem like it would have made an especially critical impact. Other reasons possible as well. 
 
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 So why is there anything here at all? Well, I should probably show work for simulation and control, even if it didnt make much impact in the robot, so that at least some work for control and simulation was done. Also, not having the robot require simulation and control results stretched out the window of time during which I could produce these documents; some of the files had work done on them after our team demoed for instance. 
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 With all that said, what is here? Well, there are: 
 -   Excel measurement files of the robot's step response to a signal that is the same magnitude across both wheels but either the same or different in polarity corresponding to forward and turning respectively. These are "ID_velExperiment.xlsx" and "ID_angVelExperiment.xlsx" respectively.
