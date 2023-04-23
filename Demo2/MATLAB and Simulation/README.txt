@@ -4,32 +4,13 @@ This folder contains work done to simulate the robot.
 Note, the control systems developed here are not in use in the Arduino. Why?
 Well, not neccessarily in order, a couple reasons.
 
--   From precedent and judgement: we didn't really use simulation and control results in Demo 1, so we didn't use simulation here either much. 
-It also didn't seem like the simulation and control task was to prove more useful in Demo 2, and from what I can judge, 
-it doesn't seem like it would have been especially useful here even if we had better committed to using it more as intended. 
-In fact, it might have caused additional costs and issues, including extra work on my part of Simulation and Control. 
-This is because we would have still needed to tune the control system as we tested the robot, 
-and any changes proposed on the Arduino could have caused downstream impacts requiring 
-remodelling, resimulating, and retuning in MATLAB and Simulink if we were to rigidly go from MATLAB and Simulink model implemented into the Arduino. 
-Other costs may have been greater time pressure for the project on both me and the rest of the team potentially as I need to get control results done by a deadline, 
-and in turn, the Arduino control scheme has to wait on simulation results. 
+-   From precedent and judgement: we didn't really use simulation and control results in Demo 1, so we didn't use simulation here either much. It also didn't seem like the simulation and control task was to prove more useful in Demo 2, and from what I can judge, it doesn't seem like it would have been especially useful here even if we had better committed to using it more as intended. In fact, it might have caused additional costs and issues, including extra work on my part of Simulation and Control. This is because we would have still needed to tune the control system as we tested the robot, and any changes proposed on the Arduino could have caused downstream impacts requiring remodelling, resimulating, and retuning in MATLAB and Simulink if we were to rigidly go from MATLAB and Simulink model implemented into the Arduino. Other costs may have been greater time pressure for the project on both me and the rest of the team potentially as I need to get control results done by a deadline, and in turn, the Arduino control scheme has to wait on simulation results. 
 
--   From utility: Simulation didn't turn out to be very time-efficient; a lot of time, probably above 10 hours, was spent to get what is now in this folder. 
-And a lot of it was carried over from Demo 1, which hurts the case even more. 
-Given, some of that time was spent trying to learn discrete control systems and watching a Youtube series on that topic or looking at other discrete control resources. 
-Nevertheless, tuning it by hand probably took far less time for the localization person, 
-and ultimately it is the control scheme on the robot that actually makes our robot controlled; 
-not the MATLAB and Simulink models, which may have issues when actually applied to the robot that would still have to be reoslved.
+-   From utility: Simulation didn't turn out to be very time-efficient; a lot of time, probably above 10 hours, was spent to get what is now in this folder. And a lot of it was carried over from Demo 1, which hurts the case even more. Given, some of that time was spent trying to learn discrete control systems and watching a Youtube series on that topic or looking at other discrete control resources. Nevertheless, tuning it by hand probably took far less time for the localization person, and ultimately it is the control scheme on the robot that actually makes our robot controlled; not the MATLAB and Simulink models, which may have issues when actually applied to the robot that would still have to be reoslved.
 
--   From personal/other reasons: I might have been more busy/occupied during this time period than others, 
-and also didn't want to put the time and effort that ultimately does not seem like it would have made an especially critical impact. 
-Other reasons possible as well. 
+-   From personal/other reasons: I might have been more busy/occupied during this time period than others,  and also didn't want to put the time and effort that ultimately does not seem like it would have made an especially critical impact. Other reasons possible as well. 
 
-So why is there anything here at all? 
-Well, I should probably show work for simulation and control, even if it didnt make much impact in the robot, 
-so that at least some work for control and simulation was done. 
-Also, not having the robot require simulation and control results stretched out the window of time during which I could produce these documents; 
-some of the files had work done on them after our team demoed for instance. 
+So why is there anything here at all? Well, I should probably show work for simulation and control, even if it didnt make much impact in the robot, so that at least some work for control and simulation was done. Also, not having the robot require simulation and control results stretched out the window of time during which I could produce these documents; some of the files had work done on them after our team demoed for instance. 
 
 With all that said, what is here? Well, there are: 
 -   Excel measurement files of the robot's step response to a signal that is the same magnitude across both wheels but either the same or different in polarity corresponding to forward and turning respectively. These are "ID_velExperiment.xlsx" and "ID_angVelExperiment.xlsx" respectively.
