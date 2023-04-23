@@ -1,4 +1,5 @@
 MATLAB & Simulation Files
+DESCRIPTIONS OF MOST IF NOT ALL CONSTITUENT FILES BELOW.
 
 This folder contains work done to simulate the robot. 
 Note, the control systems developed here are not in use in the Arduino. Why?
