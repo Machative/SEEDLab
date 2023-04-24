@@ -76,6 +76,17 @@ while cap.isOpened():
         prtmessage = str(markerID) + " marker seen"
         print(prtmessage)
         
+        #Finds the index of the desired marker
+        desiredID = 1
+        for i in ids:
+                if(ids[i] == desiredID):
+                        #Get the corners / pixel locations
+                        desiredIndex = i
+        
+        #Goes to the correct marker
+        desiredMarker = corners[desiredIndex]
+        #Then use this to go to the right marker.
+                       
         writeMarkerID(markerID)
         
         markerID += 1
