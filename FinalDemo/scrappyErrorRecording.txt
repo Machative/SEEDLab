@@ -1,5 +1,7 @@
 Column 1: Approximate Dictated Distance [cm]| Column 2: Approximate Actual Distance [cm]| 
 Column 3: Approximate Numeric Error in Distance [cm]| Column 4: Approximate Percentage Error in Distance [%]
+Trial Set 1
 50  76  26  52
 75  116 41  54.67
 
+Trial Set 2
