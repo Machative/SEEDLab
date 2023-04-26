@@ -55,7 +55,7 @@ void setup() {
 }
 
 void sendData(){
-  if(state==drive || state==rotate) Wire.write(1);
+  if(state==rotate) Wire.write(1);
   else Wire.write(0);
 }
 
@@ -118,7 +118,6 @@ void loop() {
   //Errors
   edist = desDist-dist;
   ephi = desPhi-phi;
-  dphi = ephi*1000000/(micros()-lastTime);
   if(edist<1) intedist += edist*(double)(micros()-lastTime)/1000000;
   if(ephi<0.1) intephi += ephi*(double)(micros()-lastTime)/1000000;
 
@@ -146,38 +145,45 @@ void loop() {
   }else if(state==halt){
     Vl=0;
     Vr=0;
-    if(!newVisionPhi && millis()-haltTime>1000) {
+    if(!newVisionPhi && millis()-haltTime>500) {
       state=search;
       desPhi = phi + 35.0*PI/180.0;
       intephi=0;
     }
-    if(newVisionPhi && millis()-waitTime>2000){ //Allow camera reading to settle
+    if(newVisionPhi && millis()-waitTime>1500){ //Allow camera reading to settle
       desDist=dist;
-      desPhi=phi+visionPhi + 30; //Desired rotation angle + 30 degrees to drive next to it.
+      desPhi=phi+visionPhi; //Desired rotation angle + 30 degrees to drive next to it.
       intephi=0;
       state=rotate;
     }
   }else if(state==rotate){
     //Deal with checking if rotation is "complete"
-    Vl = (255.0/8)*(-6*ephi - 10*intephi);
-    Vr = (255.0/8)*(6*ephi + 10*intephi);
-    if(abs(ephi) >= 0.04){//If done rotating
+    Vl = (255.0/8)*(-10*ephi - 10*intephi);
+    Vr = (255.0/8)*(10*ephi + 10*intephi);
+    if(abs(ephi) >= 0.06){//If done rotating
       offTarget=millis();
     }
-    if(millis()-offTarget>1000){
+    if(millis()-offTarget>500){
       desDist=dist-((2511.7/pow(visionPixels,0.987)));// + distToTarget (from camera)
       desPhi=phi;
       state=drive;
+      Serial.print("Camera distance: ");
+      Serial.println(2511.7/pow(visionPixels,0.987));
+      Serial.print("Start pos: ");
+      Serial.println(dist);
     }
   }else if(state==drive){
     //Deal with checking if drive is "complete"
-    Vl = (255.0/8)*(Kpv*edist + Kiv*intedist - 5*ephi);
-    Vr = (255.0/8)*(Kpv*edist + Kiv*intedist + 5*ephi);
+    Vl = (255.0/8)*(1*edist + 0*intedist - 5*ephi);
+    Vr = (255.0/8)*(1*edist + 0*intedist + 5*ephi);
     if(abs(edist)<0.5) {
+      Serial.print("End pos: ");
+      Serial.println(dist);
       if(currentMarker==6) state=idle;
       else {
         currentMarker++;
-        state=search;
+        state=halt;
+        haltTime=millis();
         intephi=0;
         intedist=0;
         newVisionPhi=false;
@@ -191,8 +197,8 @@ void loop() {
   sendData();
 
   static uint8_t speedLimit=0;
-  if(state==drive) speedLimit=85;
-  else speedLimit=70; 
+  if(state==drive) speedLimit=90;
+  else speedLimit=75; 
   if(Vl>speedLimit) Vl=speedLimit;
   if(Vl<-speedLimit) Vl=-speedLimit;
   if(Vr>speedLimit) Vr=speedLimit;
